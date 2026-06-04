@@ -1,0 +1,25 @@
+# Local environment configuration
+backend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.production.local
+
+# Python compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+backend/**/__pycache__/
+
+# Document upload storage directory
+uploads/
+backend/uploads/
+
+# Node packages and builds
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Operating System files
+.DS_Store
+Thumbs.db
