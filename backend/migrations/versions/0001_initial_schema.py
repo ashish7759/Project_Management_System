@@ -71,8 +71,8 @@ def upgrade() -> None:
         sa.Column('ai_extracted_json', sa.NVARCHAR(length='max'), nullable=True),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('GETDATE()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(['approved_by'], ['user_account.user_id'], ondelete='SET NULL'),
-        sa.ForeignKeyConstraint(['uploaded_by'], ['user_account.user_id'], ondelete='SET NULL'),
+        sa.ForeignKeyConstraint(['approved_by'], ['user_account.user_id'], ondelete='NO ACTION'),
+        sa.ForeignKeyConstraint(['uploaded_by'], ['user_account.user_id'], ondelete='NO ACTION'),
         sa.PrimaryKeyConstraint('document_id')
     )
     op.create_index('ix_master_document_upload_date', 'master_document', ['upload_date'], unique=False)

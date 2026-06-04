@@ -5,7 +5,7 @@ from pydantic import field_validator
 
 class Settings(BaseSettings):
     # Database URL
-    DATABASE_URL: str = "mssql+pyodbc://sa:YourSecurePassword123@localhost:1433/JharkhandBijliDB?driver=ODBC+Driver+17+for+SQL+Server"
+    DATABASE_URL: str = "mssql+pymssql://sa:MyStrong%40Pass123@localhost:1433/AntigravityDB"
 
     # Security Configuration
     SECRET_KEY: str = "949f50e95a9e33c69ee0e3e2cdb479bb333a597a7837704dfbd9079f1cdb6d2e"

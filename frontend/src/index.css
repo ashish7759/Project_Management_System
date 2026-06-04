@@ -1,8 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #f0f4f9;
+  --color-primary-100: #dbe5f0;
+  --color-primary-200: #bcd0e4;
+  --color-primary-300: #8fb1d2;
+  --color-primary-400: #5a8cbd;
+  --color-primary-500: #1e3a5f;
+  --color-primary-600: #162b47;
+  --color-primary-700: #102035;
+  --color-primary-800: #0b1625;
+  --color-primary-900: #050a11;
+  
+  --color-gold-50: #fefcf3;
+  --color-gold-100: #fcf6d6;
+  --color-gold-200: #f8eaae;
+  --color-gold-300: #f2d67a;
+  --color-gold-400: #ebbd42;
+  --color-gold-500: #b58900;
+  --color-gold-600: #8e6c00;
+  --color-gold-700: #674f00;
+  --color-gold-800: #413200;
+  --color-gold-900: #1c1500;
+}
 
 :root {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;

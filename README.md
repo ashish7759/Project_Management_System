@@ -25,14 +25,14 @@ This is a production-grade, secure, and role-based enterprise web application de
 
 ### Database
 - **Database Engine**: Microsoft SQL Server (MS SQL Server)
-- **Driver Connector**: `pymssql` (configured as transparent fallback to `pyodbc` for seamless execution on Python 3.14+)
+- **Driver Connector**: `pymssql` (pure Python SQL Server driver, no system-level ODBC driver required)
 
 ---
 
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
-1. **Python**: Python 3.10 to 3.14 (Note: Python 3.14 uses `pymssql` transparently)
+1. **Python**: Python 3.10 to 3.14
 2. **Node.js**: Node.js 18+ (with npm package manager)
 3. **Database**: Access to an MS SQL Server instance
 4. **Tesseract OCR**: Install [Tesseract binary](https://github.com/UB-Mannheim/tesseract/wiki) on your system path.
@@ -52,7 +52,7 @@ This is a production-grade, secure, and role-based enterprise web application de
    ```
    Modify `.env` to specify your MS SQL database URL and OpenAI API Key:
    ```env
-   DATABASE_URL=mssql+pyodbc://sa:YourSecurePassword@localhost:1433/JharkhandBijliDB?driver=ODBC+Driver+17+for+SQL+Server
+   DATABASE_URL=mssql+pymssql://sa:YourSecurePassword@localhost:1433/JharkhandBijliDB
    SECRET_KEY=949f50e95a9e33c69ee0e3e2cdb479bb333a597a7837704dfbd9079f1cdb6d2e
    OPENAI_API_KEY=your-openai-api-key
    UPLOAD_DIR=./uploads
@@ -60,7 +60,6 @@ This is a production-grade, secure, and role-based enterprise web application de
    ACCESS_TOKEN_EXPIRE_MINUTES=480
    CORS_ORIGINS=http://localhost:5173
    ```
-   *Note: If `pyodbc` compilation is not supported on your local Python environment, the system automatically swaps to `pymssql` dialect transparently.*
 
 3. Install requirements:
    ```bash
