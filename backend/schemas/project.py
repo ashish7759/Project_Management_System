@@ -1,14 +1,18 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
 from datetime import datetime, date
 
+
 class DepartmentMiniResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     department_id: int
     department_name: str
-    class Config:
-        from_attributes = True
+
 
 class ContractorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     contractor_id: str
     contractor_name: str
     work_order_number: Optional[str] = None
@@ -16,20 +20,20 @@ class ContractorResponse(BaseModel):
     registration_number: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
 
 class LocationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     location_id: int
     location_name: str
     district: str
     state: str
     pin_code: Optional[str] = None
 
-    class Config:
-        from_attributes = True
 
 class ProjectResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     project_id: str
     project_name: str
     location: Optional[str] = None
@@ -45,8 +49,6 @@ class ProjectResponse(BaseModel):
     created_at: datetime
     department: Optional[DepartmentMiniResponse] = None
 
-    class Config:
-        from_attributes = True
 
 class ProjectCreate(BaseModel):
     project_id: str
@@ -59,6 +61,7 @@ class ProjectCreate(BaseModel):
     budget_amount: Optional[float] = None
     status: str = "Pending"
     document_id: Optional[int] = None
+
 
 class ProjectUpdate(BaseModel):
     project_name: Optional[str] = None

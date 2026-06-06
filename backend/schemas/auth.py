@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional
+
 
 class RegisterRequest(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
@@ -23,9 +23,11 @@ class RegisterRequest(BaseModel):
             raise ValueError("Mobile number must contain only digits")
         return v
 
+
 class LoginRequest(BaseModel):
     username: str
     password: str
+
 
 class TokenResponse(BaseModel):
     access_token: str

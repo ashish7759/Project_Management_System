@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import Button from '../components/ui/Button';
 
 const DocumentUpload: React.FC = () => {
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
 
   // File states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -39,6 +44,23 @@ const DocumentUpload: React.FC = () => {
     'Administration'
   ];
 
+  const getTranslatedDocType = (type: string) => {
+    switch (type) {
+      case 'Work Order': return t('docs.type.work_order');
+      case 'Inspection Report': return t('docs.type.inspection');
+      case 'Budget Approval': return t('docs.type.budget');
+      case 'Transformer Record': return t('docs.type.transformer');
+      case 'Contractor Agreement': return t('docs.type.contractor');
+      default: return t('docs.type.other');
+    }
+  };
+
+  const getTranslatedDept = (deptName: string) => {
+    const key = `dept.${deptName.toLowerCase()}`;
+    const trans = t(key);
+    return trans === key ? deptName : trans;
+  };
+
   // Drag and Drop handlers
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -69,22 +91,20 @@ const DocumentUpload: React.FC = () => {
   const validateAndSetFile = (file: File) => {
     setNotification(null);
     
-    // Check file size (20MB)
     const maxBytes = 20 * 1024 * 1024;
     if (file.size > maxBytes) {
-      setNotification({ type: 'error', text: 'File exceeds maximum size of 20MB.' });
+      setNotification({ type: 'error', text: t('docs.err_size') });
       setSelectedFile(null);
       return;
     }
 
-    // Check file extension
     const validExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.tif', '.docx', '.xlsx'];
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     
     if (!validExtensions.includes(fileExtension)) {
       setNotification({
         type: 'error',
-        text: 'Unsupported file format. Please upload PDF, JPG, PNG, TIFF, DOCX, or XLSX.'
+        text: t('docs.err_format')
       });
       setSelectedFile(null);
       return;
@@ -96,7 +116,7 @@ const DocumentUpload: React.FC = () => {
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
-      setNotification({ type: 'error', text: 'Please select or drop a file to upload.' });
+      setNotification({ type: 'error', text: t('docs.err_select') });
       return;
     }
 
@@ -120,7 +140,7 @@ const DocumentUpload: React.FC = () => {
       
       setNotification({
         type: 'success',
-        text: 'Document uploaded successfully! Starting background OCR extraction...'
+        text: t('docs.success_upload')
       });
       
       setSelectedFile(null);
@@ -128,7 +148,6 @@ const DocumentUpload: React.FC = () => {
       setTags('');
       setProjectId('');
 
-      // Redirect to list to see processing state after 2 seconds
       setTimeout(() => {
         navigate('/documents');
       }, 2000);
@@ -136,7 +155,7 @@ const DocumentUpload: React.FC = () => {
       console.error(err);
       setNotification({
         type: 'error',
-        text: err.response?.data?.detail || 'Failed to upload document. Please try again.'
+        text: err.response?.data?.detail || t('docs.failed_upload')
       });
     } finally {
       setUploading(false);
@@ -146,16 +165,20 @@ const DocumentUpload: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Upload Document</h1>
-        <p className="text-sm text-slate-500">Upload contract papers, inspection reports, or work orders to trigger AI metadata extraction.</p>
+      <div className="pb-4 border-b border-primary/10">
+        <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl font-outfit">{t('docs.upload_title')}</h1>
+        <p className="text-xs text-text-muted">
+          {language === 'hi' 
+            ? 'एआई मेटाडेटा निष्कर्षण को ट्रिगर करने के लिए अनुबंध पत्र, निरीक्षण रिपोर्ट या कार्य आदेश अपलोड करें।' 
+            : 'Upload contract papers, inspection reports, or work orders to trigger AI metadata extraction.'}
+        </p>
       </div>
 
       {notification && (
-        <div className={`flex items-center space-x-2 rounded-lg border p-4 text-sm ${
-          notification.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'
+        <div className={`flex items-center space-x-2 rounded-lg border p-4 text-xs ${
+          notification.type === 'error' ? 'bg-danger-bg border-danger/20 text-danger' : 'bg-primary-bg2 border-primary/20 text-primary'
         }`}>
-          {notification.type === 'error' ? <AlertCircle className="h-5 w-5 text-red-600" /> : <CheckCircle className="h-5 w-5 text-green-600" />}
+          {notification.type === 'error' ? <AlertCircle className="h-5 w-5 text-danger" /> : <CheckCircle className="h-5 w-5 text-primary" />}
           <span>{notification.text}</span>
         </div>
       )}
@@ -168,10 +191,10 @@ const DocumentUpload: React.FC = () => {
             onDragOver={handleDrag}
             onDragLeave={handleDrag}
             onDrop={handleDrop}
-            className={`flex h-96 flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all ${
+            className={`flex h-96 flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all duration-200 ${
               isDragActive 
-                ? 'border-primary-500 bg-primary-50/50 scale-[0.99]' 
-                : 'border-slate-350 bg-white hover:border-slate-400'
+                ? 'border-primary bg-primary-bg-2 scale-[0.99]' 
+                : 'border-primary/35 bg-primary-bg hover:border-primary hover:bg-primary-bg-2'
             }`}
           >
             <input
@@ -182,37 +205,41 @@ const DocumentUpload: React.FC = () => {
               accept=".pdf, .jpg, .jpeg, .png, .tiff, .tif, .docx, .xlsx"
             />
             
-            <div className="flex flex-col items-center justify-center text-center p-6">
-              <div className="rounded-full bg-slate-100 p-4 text-slate-500 shadow-inner">
-                <UploadCloud className="h-10 w-10 text-primary-500 animate-pulse" />
+            <div className="flex flex-col items-center justify-center text-center p-6 select-none">
+              <div 
+                className="rounded-full p-4 shadow-inner mb-4"
+                style={{ backgroundColor: '#ffffff', border: '1px solid rgba(26,92,56,0.15)' }}
+              >
+                <UploadCloud className="h-10 w-10 text-primary animate-pulse" />
               </div>
               
               {selectedFile ? (
-                <div className="mt-4 space-y-2">
-                  <p className="text-sm font-semibold text-slate-900 flex items-center justify-center">
-                    <FileText className="mr-1.5 h-4 w-4 text-slate-500" />
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-text-body flex items-center justify-center">
+                    <FileText className="mr-1.5 h-4 w-4 text-text-muted" />
                     {selectedFile.name}
                   </p>
-                  <p className="text-xs text-slate-400">
-                    Size: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                  <p className="text-xs text-text-muted">
+                    {t('common.size')}: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                   </p>
                   <button
+                    type="button"
                     onClick={() => setSelectedFile(null)}
-                    className="text-xs font-semibold text-red-500 hover:underline"
+                    className="text-xs font-semibold text-danger hover:underline cursor-pointer"
                   >
-                    Remove and select another
+                    {t('docs.remove_file')}
                   </button>
                 </div>
               ) : (
                 <>
-                  <p className="mt-4 text-sm font-semibold text-slate-800">
-                    Drag and drop file here, or{' '}
-                    <label htmlFor="file-upload" className="cursor-pointer text-primary-500 hover:text-primary-600 font-bold hover:underline">
-                      browse computer
+                  <p className="text-sm font-semibold text-text-body">
+                    {language === 'hi' ? 'फ़ाइल यहाँ खींचें और छोड़ें, या ' : 'Drag and drop file here, or '}
+                    <label htmlFor="file-upload" className="cursor-pointer text-primary hover:underline font-bold">
+                      {language === 'hi' ? 'कंप्यूटर ब्राउज़ करें' : 'browse computer'}
                     </label>
                   </p>
-                  <p className="mt-2 text-xs text-slate-400">
-                    Supports PDF, JPG, PNG, TIFF, DOCX, XLSX up to 20MB.
+                  <p className="mt-2 text-xs text-text-muted">
+                    {t('docs.accepted_formats')}
                   </p>
                 </>
               )}
@@ -221,89 +248,81 @@ const DocumentUpload: React.FC = () => {
         </div>
 
         {/* Metadata Sidebar Form */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">Document Metadata</h3>
+        <div className="rounded-xl border border-primary/15 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-primary border-b border-primary/10 pb-3 uppercase tracking-wider font-outfit">
+            {language === 'hi' ? 'दस्तावेज़ मेटाडेटा' : 'Document Metadata'}
+          </h3>
           <form onSubmit={handleUploadSubmit} className="mt-4 space-y-4">
             
             {/* Doc Type */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase">Document Type</label>
-              <select
-                value={docType}
-                onChange={(e) => setDocType(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none"
-              >
-                {docTypes.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label={t('docs.doc_type')}
+              value={docType}
+              onChange={(e) => setDocType(e.target.value)}
+            >
+              {docTypes.map(t => (
+                <option key={t} value={t}>{getTranslatedDocType(t)}</option>
+              ))}
+            </Select>
 
             {/* Department */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase">Department Origin</label>
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none"
-              >
-                {departments.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label={t('common.department')}
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+            >
+              {departments.map(d => (
+                <option key={d} value={d}>{getTranslatedDept(d)}</option>
+              ))}
+            </Select>
 
             {/* Project ID */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase">Project ID (Optional)</label>
-              <input
-                type="text"
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none"
-                placeholder="e.g. JBO-RNC-09"
-              />
-            </div>
+            <Input
+              label={language === 'hi' ? 'परियोजना आईडी (वैकल्पिक)' : 'Project ID (Optional)'}
+              type="text"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              placeholder="e.g. JBO-RNC-09"
+            />
 
             {/* Description */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase">Description</label>
+            <div className="w-full flex flex-col items-start">
+              <label className="text-[13px] font-medium text-primary mb-1 select-none">{t('docs.description')}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none"
-                placeholder="Brief summary of document content..."
+                className="w-full bg-white border border-primary/25 rounded-lg py-[0.6rem] px-[0.9rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
+                placeholder={t('docs.desc_placeholder')}
               />
             </div>
 
             {/* Tags */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase">Search Tags (Comma separated)</label>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none"
-                placeholder="transformer, tender, agreement"
-              />
-            </div>
+            <Input
+              label={language === 'hi' ? 'खोज टैग (अल्पविराम से अलग)' : 'Search Tags (Comma separated)'}
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="transformer, tender, agreement"
+            />
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={uploading || !selectedFile}
-              className="flex w-full items-center justify-center rounded-lg bg-primary-500 py-2.5 text-sm font-semibold text-white shadow hover:bg-primary-600 disabled:opacity-50"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading File...
-                </>
-              ) : (
-                'Process Document'
-              )}
-            </button>
+            <div className="pt-2">
+              <Button
+                type="submit"
+                disabled={uploading || !selectedFile}
+                className="w-full"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('docs.uploading_btn')}
+                  </>
+                ) : (
+                  t('docs.process_btn')
+                )}
+              </Button>
+            </div>
           </form>
         </div>
       </div>

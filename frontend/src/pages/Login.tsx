@@ -1,23 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ShieldAlert, Lock, User as UserIcon, Loader2 } from 'lucide-react';
-
-const loginSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
-type LoginFormInput = z.infer<typeof loginSchema>;
+import { ShieldAlert, Lock, User as UserIcon, Loader2, Zap } from 'lucide-react';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageToggle from '../components/ui/LanguageToggle';
 
 const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loginSchema = z.object({
+    username: z.string().min(3, t('auth.username_min')),
+    password: z.string().min(6, t('auth.password_min')),
+  });
+
+  type LoginFormInput = z.infer<typeof loginSchema>;
+
+  useEffect(() => {
+    const navigationEntries = performance.getEntriesByType('navigation');
+    let isReload = false;
+    if (navigationEntries.length > 0) {
+      const navType = (navigationEntries[0] as PerformanceNavigationTiming).type;
+      isReload = navType === 'reload';
+    } else {
+      // Fallback for compatibility
+      isReload = performance.navigation.type === 1;
+    }
+
+    if (isReload && !(window as any).__hasVisitedIntro) {
+      navigate('/');
+    }
+  }, [navigate]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInput>({
     resolver: zodResolver(loginSchema)
@@ -31,10 +52,10 @@ const Login: React.FC = () => {
       navigate('/dashboard');
     } catch (err: any) {
       console.error(err);
-      if (err.response && err.response.data && err.response.data.detail) {
-        setErrorMsg(err.response.data.detail);
+      if (err.response && err.response.data) {
+        setErrorMsg(err.response.data.detail || err.response.data.message || t('auth.invalid_credentials'));
       } else {
-        setErrorMsg('Invalid username or password. Please try again.');
+        setErrorMsg(t('auth.invalid_credentials'));
       }
     } finally {
       setIsSubmitting(false);
@@ -42,105 +63,127 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
-        {/* Header Branding */}
+    <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative" style={{ backgroundColor: '#f7faf8' }}>
+      {/* Floating Language Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageToggle />
+      </div>
+
+      {/* CSS Animations */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes boltFlash {
+          0%, 100% { opacity: 0.85; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.12); }
+        }
+        .animate-boltFlash {
+          animation: boltFlash 1.6s infinite ease-in-out;
+        }
+      `}} />
+
+      <div 
+        className="w-full max-w-md space-y-6 rounded-xl border p-8 shadow-md relative"
+        style={{
+          backgroundColor: '#ffffff',
+          borderTop: '4px solid #1a5c38',
+          borderColor: 'rgba(26, 92, 56, 0.15)'
+        }}
+      >
+        {/* Logo/Emblem Area */}
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary-500 text-white font-bold text-2xl shadow-md">
-            JBO
+          <div 
+            className="relative w-[92px] h-[92px] rounded-full border-[1.5px] flex items-center justify-center shadow-sm mx-auto mb-4"
+            style={{
+              borderColor: '#c9a84c',
+              backgroundColor: '#f9f5ec'
+            }}
+          >
+            {/* 4 golden dots */}
+            <div className="absolute -top-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+            <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+            <div className="absolute -left-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+            <div className="absolute -right-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+
+            {/* Inner circle */}
+            <div 
+              className="w-[72px] h-[72px] rounded-full flex items-center justify-center shadow animate-boltFlash"
+              style={{ backgroundColor: '#1a5c38' }}
+            >
+              <Zap 
+                size={32} 
+                style={{ color: '#c9a84c' }} 
+              />
+            </div>
           </div>
-          <h2 className="mt-6 text-2xl font-bold tracking-tight text-slate-900">
-            JHARKHAND BIJLI VITRAN NIGAM LTD
+          
+          <h2 className="text-xl font-bold tracking-tight animate-fadeIn" style={{ color: '#1a5c38' }}>
+            {t('app.name')}
           </h2>
-          <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Document Intelligence & Project Tracker
+          <p className="mt-1 text-xs animate-fadeIn" style={{ color: '#666666' }}>
+            {t('auth.sign_in')}
           </p>
         </div>
 
         {errorMsg && (
-          <div className="flex items-center space-x-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <div className="flex items-center space-x-2 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-800">
             <ShieldAlert className="h-5 w-5 shrink-0 text-red-600" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-4 rounded-md">
-            {/* Username Input */}
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-slate-700">
-                Username
-              </label>
-              <div className="relative mt-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <UserIcon className="h-5 w-5" />
-                </div>
-                <input
-                  id="username"
-                  type="text"
-                  autoComplete="username"
-                  {...register('username')}
-                  className={`block w-full rounded-lg border pl-10 pr-3 py-2 text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 sm:text-sm ${
-                    errors.username ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-slate-300'
-                  }`}
-                  placeholder="Enter username"
-                />
-              </div>
-              {errors.username && (
-                <p className="mt-1 text-xs text-red-600">{errors.username.message}</p>
-              )}
-            </div>
+        <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          {/* Username Input */}
+          <Input
+            id="username"
+            type="text"
+            label={t('auth.username')}
+            autoComplete="username"
+            placeholder={t('auth.username')}
+            error={errors.username?.message}
+            {...register('username')}
+          />
 
-            {/* Password Input */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                Password
-              </label>
-              <div className="relative mt-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  {...register('password')}
-                  className={`block w-full rounded-lg border pl-10 pr-3 py-2 text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 sm:text-sm ${
-                    errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-slate-300'
-                  }`}
-                  placeholder="••••••••"
-                />
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-          </div>
+          {/* Password Input */}
+          <Input
+            id="password"
+            type="password"
+            label={t('auth.password')}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register('password')}
+          />
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-500">Need an account?</span>
-            <Link to="/register" className="font-semibold text-primary-500 hover:text-primary-600">
-              Register Employee
+          <div className="flex items-center justify-between text-xs pt-1">
+            <span style={{ color: '#666666' }}>{t('auth.need_account')}</span>
+            <Link to="/register" className="font-semibold transition duration-150" style={{ color: '#c9a84c' }} onMouseOver={(e) => e.currentTarget.style.color = '#a8863c'} onMouseOut={(e) => e.currentTarget.style.color = '#c9a84c'}>
+              {t('auth.register_link')}
             </Link>
           </div>
 
-          <div>
-            <button
+          <div className="pt-2">
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+              className="w-full"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Authenticating...
+                  {t('auth.authenticating')}
                 </>
               ) : (
-                'Sign In'
+                t('auth.login_btn')
               )}
-            </button>
+            </Button>
           </div>
         </form>
+
+        {/* Footer Note */}
+        <div className="text-center pt-2 border-t border-primary/10">
+          <span className="text-[11px]" style={{ color: '#999999' }}>
+            {t('auth.footer_text')}
+          </span>
+        </div>
       </div>
     </div>
   );

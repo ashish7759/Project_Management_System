@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, NVARCHAR, DateTime, ForeignKey, text, Index
+from sqlalchemy import Column, Integer, NVARCHAR, DateTime, ForeignKey, text
 from sqlalchemy.orm import relationship
 try:
     from database import Base
 except ImportError:
     from backend.database import Base
+
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
@@ -18,7 +19,3 @@ class AuditLog(Base):
     timestamp = Column(DateTime, server_default=text("GETDATE()"), nullable=False, index=True)
 
     user = relationship("User")
-
-# Ensure indexes as requested
-Index("ix_audit_log_timestamp", AuditLog.timestamp)
-Index("ix_audit_log_action_type", AuditLog.action_type)

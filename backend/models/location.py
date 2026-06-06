@@ -1,10 +1,11 @@
-from sqlalchemy import Column, Integer, NVARCHAR, DateTime, ForeignKey, text, Index
+from sqlalchemy import Column, Integer, NVARCHAR, DateTime, ForeignKey, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 try:
     from database import Base
 except ImportError:
     from backend.database import Base
+
 
 class Location(Base):
     __tablename__ = "location"

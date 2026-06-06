@@ -5,6 +5,7 @@ try:
 except ImportError:
     from backend.database import Base
 
+
 class Department(Base):
     __tablename__ = "department"
 

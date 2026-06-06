@@ -1,10 +1,11 @@
-from sqlalchemy import Column, NVARCHAR, DateTime, Date, DECIMAL, ForeignKey, text, Index, Integer
+from sqlalchemy import Column, NVARCHAR, DateTime, Date, DECIMAL, ForeignKey, text, Integer
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 try:
     from database import Base
 except ImportError:
     from backend.database import Base
+
 
 class Project(Base):
     __tablename__ = "project"
@@ -26,6 +27,3 @@ class Project(Base):
 
     department = relationship("Department")
     document = relationship("MasterDocument")
-
-# Ensure index on status, project_id, and document_id
-Index("ix_project_status", Project.status)

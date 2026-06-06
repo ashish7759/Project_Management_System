@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks, status
 from sqlalchemy.orm import Session
@@ -311,7 +311,7 @@ def verify_document(
         # Update MasterDocument
         doc.verification_status = "Approved"
         doc.approved_by = current_user.user_id
-        doc.approved_at = datetime.utcnow()
+        doc.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
         # Step 6: Populate / Update Child Tables
         

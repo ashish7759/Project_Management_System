@@ -1,27 +1,29 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, Home } from 'lucide-react';
+import Button from '../components/ui/Button';
+import { useLanguage } from '../context/LanguageContext';
 
 const Unauthorized: React.FC = () => {
+  const { t } = useLanguage();
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 text-center">
-      <div className="rounded-full bg-red-100 p-4 text-red-650 shadow-inner">
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 text-center" style={{ backgroundColor: '#f7faf8' }}>
+      <div className="rounded-full p-4 text-danger shadow-inner" style={{ backgroundColor: '#fef2f2' }}>
         <ShieldAlert className="h-16 w-16" />
       </div>
-      <h1 className="mt-6 text-3xl font-extrabold text-slate-900 sm:text-4xl">
-        Access Denied (403)
+      <h1 className="mt-6 text-3xl font-extrabold text-primary sm:text-4xl font-outfit">
+        {t('auth.access_denied')}
       </h1>
-      <p className="mt-4 max-w-md text-slate-500">
-        You do not have the required administrative permissions to access this screen. 
-        Please contact your Jharkhand Bijli IT administrator if you believe this is an error.
+      <p className="mt-4 max-w-md text-xs text-text-muted leading-relaxed">
+        {t('auth.access_denied_desc')}
       </p>
       <div className="mt-8">
-        <Link
-          to="/dashboard"
-          className="inline-flex items-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-primary-600 transition-all duration-150"
-        >
-          <Home className="mr-2 h-4 w-4" />
-          Back to Dashboard
+        <Link to="/dashboard">
+          <Button variant="primary">
+            <Home className="h-4 w-4" />
+            {t('auth.back_to_dashboard')}
+          </Button>
         </Link>
       </div>
     </div>

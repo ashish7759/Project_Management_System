@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional
 from datetime import datetime, date
+
 
 class AIExtractedFields(BaseModel):
     project_name: Optional[str] = None
@@ -18,7 +19,10 @@ class AIExtractedFields(BaseModel):
     status: Optional[str] = None
     description: Optional[str] = None
 
+
 class DocumentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     document_id: int
     file_name: str
     file_type: str
@@ -32,8 +36,6 @@ class DocumentResponse(BaseModel):
     raw_ocr_text: Optional[str] = None
     ai_extracted_json: Optional[str] = None
 
-    class Config:
-        from_attributes = True
 
 class DocumentVerifyRequest(BaseModel):
     project_name: str

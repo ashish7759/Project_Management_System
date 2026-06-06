@@ -1,10 +1,10 @@
-from sqlalchemy import Column, Integer, NVARCHAR, DateTime, Date, DECIMAL, ForeignKey, text, Index
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, NVARCHAR, DateTime, Date, DECIMAL, ForeignKey, text
 from sqlalchemy.orm import relationship
 try:
     from database import Base
 except ImportError:
     from backend.database import Base
+
 
 class Milestone(Base):
     """
@@ -19,6 +19,7 @@ class Milestone(Base):
     created_at = Column(DateTime, server_default=text("GETDATE()"), nullable=False)
 
     project = relationship("Project")
+
 
 class ProgressHistory(Base):
     """

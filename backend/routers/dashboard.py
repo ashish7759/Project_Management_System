@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 try:
     from database import get_db
@@ -81,7 +81,7 @@ def get_dashboard_stats(
 
     # 3. Line Chart: Monthly uploads over last 6 months
     # Group uploads count by month
-    six_months_ago = datetime.utcnow() - timedelta(days=180)
+    six_months_ago = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=180)
     monthly_upload_query = db.query(
         extract('year', MasterDocument.upload_date).label('year'),
         extract('month', MasterDocument.upload_date).label('month'),

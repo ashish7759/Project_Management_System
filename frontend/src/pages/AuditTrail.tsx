@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { AuditLog } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   ShieldCheck, 
   Search, 
   Download, 
   Filter, 
-  Loader2, 
-  AlertTriangle,
-  FileCode
+  FileCode,
+  AlertTriangle
 } from 'lucide-react';
+import { Table, TableRow, TableCell } from '../components/ui/Table';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import Spinner from '../components/ui/Spinner';
 
 const AuditTrail: React.FC = () => {
+  const { t, language } = useLanguage();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +44,7 @@ const AuditTrail: React.FC = () => {
       const res = await api.get('/audit-logs', { params });
       setLogs(res.data);
     } catch (err) {
-      setAlert({ type: 'error', text: 'Failed to retrieve system audit records.' });
+      setAlert({ type: 'error', text: t('audit.failed_retrieve') });
     } finally {
       setLoading(false);
     }
@@ -63,189 +68,207 @@ const AuditTrail: React.FC = () => {
     window.open(exportUrl, '_blank');
   };
 
+  const getActionBadgeClass = (action: string) => {
+    const act = action.toUpperCase();
+    if (act.includes('LOGIN')) {
+      return 'bg-primary-bg2 text-primary border-primary/30';
+    } else if (act.includes('UPLOAD')) {
+      return 'bg-warning-bg text-accent-dark border-accent/40';
+    } else if (act.includes('APPROVE')) {
+      return 'bg-primary-bg2 text-primary border-primary/30';
+    } else if (act.includes('REJECT') || act.includes('DELETE')) {
+      return 'bg-danger-bg text-danger border-danger/20';
+    } else if (act.includes('MODIFY') || act.includes('UPDATE')) {
+      return 'bg-warning-bg text-accent-dark border-accent/40';
+    } else if (act.includes('REPORT')) {
+      return 'bg-primary-bg2 text-primary border-primary/30';
+    }
+    return 'bg-primary-bg text-primary-light border-primary/20';
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">System Audit Trail</h1>
-          <p className="text-sm text-slate-500">Security history auditing logins, OCR classifications, progress adjustments, and RBAC changes.</p>
+      {/* Header Strip */}
+      <div 
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-xl shadow border border-primary/10"
+        style={{
+          backgroundColor: '#1a5c38'
+        }}
+      >
+        <div className="text-white space-y-0.5">
+          <h1 className="text-lg font-bold tracking-tight font-outfit">{t('audit.title')}</h1>
+          <p className="text-xs text-white/70">{t('audit.subtitle')}</p>
         </div>
-        <button
+        <Button
+          variant="accent"
           onClick={handleExportCSV}
-          className="inline-flex items-center rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow hover:bg-slate-800"
+          className="shrink-0"
         >
-          <Download className="mr-2 h-3.5 w-3.5" />
-          Export CSV
-        </button>
+          <Download className="mr-1.5 h-4 w-4" />
+          {t('audit.export_csv')}
+        </Button>
       </div>
 
       {alert && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="flex items-center justify-between rounded-lg border border-danger/25 bg-danger-bg p-4 text-xs text-danger">
           <span>{alert.text}</span>
-          <button onClick={() => setAlert(null)} className="font-semibold uppercase tracking-wider text-xs">Dismiss</button>
+          <button onClick={() => setAlert(null)} className="font-semibold uppercase tracking-wider text-[10px] cursor-pointer">{t('common.dismiss')}</button>
         </div>
       )}
 
       {/* Filters Toolbar */}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div 
+        className="flex flex-wrap items-center gap-4 rounded-lg border p-4 shadow-sm"
+        style={{
+          backgroundColor: '#f7faf8',
+          borderColor: 'rgba(26, 92, 56, 0.12)'
+        }}
+      >
+        <div className="flex items-center text-primary-light">
+          <Filter className="mr-1.5 h-4 w-4" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider">{t('audit.filters_label')}</span>
+        </div>
+
         {/* Username search */}
         <div className="relative flex-1 min-w-[150px]">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-primary-light">
             <Search className="h-4 w-4" />
           </div>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="block w-full rounded-lg border border-slate-200 pl-9 pr-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none"
-            placeholder="Filter by Username..."
+            className="block w-full rounded-lg border border-primary/20 bg-white pl-9 pr-3 py-1.5 text-xs text-text-body placeholder-text-hint focus:outline-none focus:border-primary transition duration-150"
+            placeholder={t('audit.filter_username')}
           />
         </div>
 
         {/* Action Type search */}
         <div className="relative flex-1 min-w-[150px]">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-            <Filter className="h-4 w-4" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-primary-light">
+            <Search className="h-4 w-4" />
           </div>
           <input
             type="text"
             value={actionType}
             onChange={(e) => setActionType(e.target.value)}
-            className="block w-full rounded-lg border border-slate-200 pl-9 pr-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none"
-            placeholder="e.g. Login Success..."
+            className="block w-full rounded-lg border border-primary/20 bg-white pl-9 pr-3 py-1.5 text-xs text-text-body placeholder-text-hint focus:outline-none focus:border-primary transition duration-150"
+            placeholder={t('audit.filter_action_placeholder')}
           />
         </div>
 
         {/* Start date range */}
         <div className="flex items-center space-x-2">
-          <label className="text-[10px] font-bold text-slate-400 uppercase">From:</label>
+          <label className="text-[10px] font-bold text-text-muted uppercase">{t('audit.from')}</label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none"
+            className="rounded-lg border border-primary/20 bg-white px-2 py-1 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
           />
         </div>
 
         {/* End date range */}
         <div className="flex items-center space-x-2">
-          <label className="text-[10px] font-bold text-slate-400 uppercase">To:</label>
+          <label className="text-[10px] font-bold text-text-muted uppercase">{t('audit.to')}</label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none"
+            className="rounded-lg border border-primary/20 bg-white px-2 py-1 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
           />
         </div>
       </div>
 
       {/* Logs Table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center text-slate-400">
-            <ShieldCheck className="h-8 w-8 stroke-1" />
-            <span className="mt-2 text-sm font-medium">No audit events logged.</span>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-4">Log ID</th>
-                  <th className="px-6 py-4">User</th>
-                  <th className="px-6 py-4">Action</th>
-                  <th className="px-6 py-4">Module</th>
-                  <th className="px-6 py-4">IP Address</th>
-                  <th className="px-6 py-4">Timestamp</th>
-                  <th className="px-6 py-4 text-right">Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white text-slate-700">
-                {logs.map((log) => (
-                  <tr key={log.log_id} className="hover:bg-slate-50/75">
-                    <td className="px-6 py-4 font-mono font-semibold text-slate-500">
-                      #{log.log_id}
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-slate-900">
-                      {log.username || 'SYSTEM'}
-                      <span className="block text-[10px] font-normal text-slate-400 font-mono">User ID: {log.user_id || 'N/A'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex rounded bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-800 border border-slate-150">
-                        {log.action_type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-slate-650 font-semibold">{log.module}</span>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-slate-500">
-                      {log.ip_address || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400">
-                      {new Date(log.timestamp).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {log.details ? (
-                        <button
-                          onClick={() => setSelectedLog(log)}
-                          className="inline-flex items-center text-xs font-semibold text-primary-500 hover:text-primary-650"
-                        >
-                          <FileCode className="mr-1 h-3.5 w-3.5" />
-                          View Metadata
-                        </button>
-                      ) : (
-                        <span className="text-slate-350 text-xs">N/A</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {loading ? (
+        <div className="flex h-64 items-center justify-center">
+          <Spinner size={32} label={t('audit.loading')} />
+        </div>
+      ) : logs.length === 0 ? (
+        <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-white rounded-xl border border-primary/10">
+          <ShieldCheck className="h-8 w-8 stroke-1 text-primary-light" />
+          <span className="mt-2 text-xs font-medium">{t('audit.no_logs')}</span>
+        </div>
+      ) : (
+        <Table headers={[t('audit.log_id'), t('audit.user'), t('audit.action'), t('audit.module'), t('audit.ip'), t('audit.timestamp'), t('audit.details')]}>
+          {logs.map((log, idx) => (
+            <TableRow key={log.log_id} index={idx}>
+              <TableCell className="font-mono font-semibold text-primary-light">
+                #{log.log_id}
+              </TableCell>
+              <TableCell>
+                <div className="font-semibold text-text-body">{log.username || 'SYSTEM'}</div>
+                <div className="text-[10px] text-text-muted font-mono">{(language === 'hi' ? 'उपयोगकर्ता आईडी' : 'User ID')}: {log.user_id || 'N/A'}</div>
+              </TableCell>
+              <TableCell>
+                <span className={`inline-flex rounded-full py-[3px] px-[10px] text-[11px] font-semibold border ${getActionBadgeClass(log.action_type)}`}>
+                  {log.action_type}
+                </span>
+              </TableCell>
+              <TableCell className="font-semibold text-primary-light">
+                {log.module}
+              </TableCell>
+              <TableCell className="font-mono text-text-muted">
+                {log.ip_address || 'N/A'}
+              </TableCell>
+              <TableCell className="text-text-muted">
+                {new Date(log.timestamp).toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right">
+                {log.details ? (
+                  <Button
+                    variant="icon"
+                    onClick={() => setSelectedLog(log)}
+                    title="View Metadata JSON"
+                  >
+                    <FileCode className="h-4.5 w-4.5" />
+                  </Button>
+                ) : (
+                  <span className="text-text-hint text-xs">N/A</span>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </Table>
+      )}
 
       {/* Details JSON Modal */}
-      {selectedLog && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <h3 className="text-base font-bold text-slate-900">Audit Log Details</h3>
-              <button 
-                onClick={() => setSelectedLog(null)}
-                className="text-xs font-semibold text-slate-400 hover:text-slate-650 uppercase"
-              >
-                Close
-              </button>
+      <Modal
+        isOpen={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
+        title={t('audit.details_title')}
+        footer={
+          <Button
+            variant="secondary"
+            onClick={() => setSelectedLog(null)}
+          >
+            {t('common.close')}
+          </Button>
+        }
+      >
+        {selectedLog && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="font-bold text-text-hint uppercase text-[9px]">{t('audit.action')}</span>
+                <p className="text-primary font-semibold">{selectedLog.action_type}</p>
+              </div>
+              <div>
+                <span className="font-bold text-text-hint uppercase text-[9px]">{t('audit.timestamp')}</span>
+                <p className="text-text-body">{new Date(selectedLog.timestamp).toLocaleString()}</p>
+              </div>
             </div>
             
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="font-bold text-slate-400 uppercase text-[9px]">Action</span>
-                  <p className="text-slate-800 font-semibold">{selectedLog.action_type}</p>
-                </div>
-                <div>
-                  <span className="font-bold text-slate-400 uppercase text-[9px]">Timestamp</span>
-                  <p className="text-slate-800">{new Date(selectedLog.timestamp).toLocaleString()}</p>
-                </div>
-              </div>
-              
-              <div>
-                <span className="font-bold text-slate-400 uppercase text-[9px]">Logged JSON Details</span>
-                <pre className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-[10px] text-slate-700 overflow-x-auto">
-                  {JSON.stringify(JSON.parse(selectedLog.details || '{}'), null, 2)}
-                </pre>
-              </div>
+            <div>
+              <span className="font-bold text-text-hint uppercase text-[9px]">{t('audit.logged_json')}</span>
+              <pre className="mt-1 block w-full rounded-lg border border-primary/10 bg-primary-bg p-4 font-mono text-[10px] text-text-body overflow-x-auto">
+                {JSON.stringify(JSON.parse(selectedLog.details || '{}'), null, 2)}
+              </pre>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

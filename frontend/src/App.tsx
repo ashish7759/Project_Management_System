@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
 // Pages
+import IntroPage from './pages/IntroPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -25,27 +26,24 @@ const App: React.FC = () => {
       <AuthProvider>
         <Routes>
           {/* Public Authentication Routes */}
+          <Route path="/" element={<IntroPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
           {/* Protected Application Routes */}
           <Route 
-            path="/" 
             element={
               <ProtectedRoute>
                 <Layout />
               </ProtectedRoute>
             }
           >
-            {/* Redirect root to dashboard */}
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             
             {/* Admin only */}
             <Route 
-              path="admin/users" 
+              path="/admin/users" 
               element={
                 <ProtectedRoute allowedRoles={['Admin']}>
                   <UserManagement />
@@ -53,7 +51,7 @@ const App: React.FC = () => {
               } 
             />
             <Route 
-              path="admin/audit-log" 
+              path="/admin/audit-log" 
               element={
                 <ProtectedRoute allowedRoles={['Admin']}>
                   <AuditTrail />
@@ -63,7 +61,7 @@ const App: React.FC = () => {
 
             {/* Operator/Manager/Admin */}
             <Route 
-              path="documents/upload" 
+              path="/documents/upload" 
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Operator']}>
                   <DocumentUpload />
@@ -71,7 +69,7 @@ const App: React.FC = () => {
               } 
             />
             <Route 
-              path="documents/:id/verify" 
+              path="/documents/:id/verify" 
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Operator']}>
                   <DocumentVerify />
@@ -79,7 +77,7 @@ const App: React.FC = () => {
               } 
             />
             <Route 
-              path="progress" 
+              path="/progress" 
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Operator']}>
                   <ProgressTracker />
@@ -89,7 +87,7 @@ const App: React.FC = () => {
 
             {/* Admin/Manager/Viewer */}
             <Route 
-              path="reports" 
+              path="/reports" 
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Viewer']}>
                   <ReportGeneration />
@@ -98,9 +96,9 @@ const App: React.FC = () => {
             />
 
             {/* All Roles */}
-            <Route path="documents" element={<DocumentList />} />
-            <Route path="projects" element={<ProjectList />} />
-            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="/documents" element={<DocumentList />} />
+            <Route path="/projects" element={<ProjectList />} />
+            <Route path="/projects/:id" element={<ProjectDetail />} />
           </Route>
 
           {/* Catch-all fallback redirect */}

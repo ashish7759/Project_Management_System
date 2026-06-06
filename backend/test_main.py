@@ -29,10 +29,10 @@ def test_imports_succeeded():
 
 def test_api_root():
     """
-    Verify the base API endpoint is live and returning correct metadata.
+    Verify the base API endpoint is live and returning HTML landing page.
     """
     response = client.get("/")
     assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "Online"
-    assert "api_docs" in data
+    assert "text/html" in response.headers["content-type"]
+    assert "JBO API Gateway" in response.text
+    assert "Jharkhand" in response.text

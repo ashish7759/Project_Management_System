@@ -1,10 +1,11 @@
-from sqlalchemy import Column, Integer, NVARCHAR, DateTime, ForeignKey, text, Index
+from sqlalchemy import Column, Integer, NVARCHAR, DateTime, ForeignKey, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 try:
     from database import Base
 except ImportError:
     from backend.database import Base
+
 
 class User(Base):
     __tablename__ = "user_account"  # "user" is a reserved word in MS SQL Server, so we name the table "user_account"
@@ -24,6 +25,3 @@ class User(Base):
     updated_at = Column(DateTime, onupdate=func.now(), nullable=True)
 
     department = relationship("Department")
-
-# Ensure index on status as requested
-Index("ix_user_account_status", User.status)

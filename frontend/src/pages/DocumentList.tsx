@@ -3,22 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { MasterDocument } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   Search, 
-  Filter, 
   Trash2, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
   Eye, 
   Download,
-  AlertTriangle,
-  Loader2
+  AlertTriangle
 } from 'lucide-react';
+import { Table, TableRow, TableCell } from '../components/ui/Table';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import Spinner from '../components/ui/Spinner';
 
 const DocumentList: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   
   const [documents, setDocuments] = useState<MasterDocument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ const DocumentList: React.FC = () => {
   const [verificationStatus, setVerificationStatus] = useState('');
 
   // Alerts
-  const [alert, setAlert] = useState<{ type: 'error' | 'success', text: string } | null>(null);
+  const [alert, setAlert] = useState<{ type: 'error' | 'success', message: string } | null>(null);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -44,7 +45,7 @@ const DocumentList: React.FC = () => {
       const res = await api.get('/documents', { params });
       setDocuments(res.data);
     } catch (err: any) {
-      setAlert({ type: 'error', text: 'Failed to retrieve uploaded documents.' });
+      setAlert({ type: 'error', message: language === 'hi' ? 'दस्तावेज़ों को पुनः प्राप्त करने में विफल।' : 'Failed to retrieve uploaded documents.' });
     } finally {
       setLoading(false);
     }
@@ -55,69 +56,108 @@ const DocumentList: React.FC = () => {
   }, [search, docType, ocrStatus, verificationStatus]);
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to permanently delete this document and its associated records?')) return;
+    if (!window.confirm(t('docs.delete_confirm'))) return;
     try {
       await api.delete(`/documents/${id}`);
-      setAlert({ type: 'success', text: 'Document deleted successfully.' });
+      setAlert({ type: 'success', message: t('docs.deleted_success') });
       fetchDocuments();
     } catch (err: any) {
-      setAlert({ type: 'error', text: err.response?.data?.detail || 'Failed to delete document.' });
+      setAlert({ type: 'error', message: err.response?.data?.detail || t('docs.deleted_failed') });
     }
   };
 
   const handleDownload = (doc: MasterDocument) => {
-    // Generate static file URL or request byte stream.
-    // In our backend main.py we mounted "/uploads" as static files.
-    // The original_file_path is stored as an absolute path, so let's resolve relative to uploads mount.
-    // E.g. original_file_path: C:\Users\OMEN\Desktop\...\uploads\2026\06\Work Order\invoice.pdf
-    // We want the relative subpath starting from "uploads" or we can trigger download via a file stream!
-    // Since we know the filename, let's download it.
-    // The easiest way is to let the browser request the path by mapping the absolute file path to a relative URL.
     try {
       const pathParts = doc.original_file_path.replace(/\\/g, '/').split('/uploads/');
       if (pathParts.length > 1) {
         const downloadUrl = `http://localhost:8000/uploads/${pathParts[1]}`;
         window.open(downloadUrl, '_blank');
       } else {
-        setAlert({ type: 'error', text: 'Invalid file reference path.' });
+        setAlert({ type: 'error', message: language === 'hi' ? 'अमान्य फ़ाइल संदर्भ पथ।' : 'Invalid file reference path.' });
       }
     } catch (e) {
-      setAlert({ type: 'error', text: 'Could not trigger download.' });
+      setAlert({ type: 'error', message: language === 'hi' ? 'डाउनलोड शुरू नहीं किया जा सका।' : 'Could not trigger download.' });
+    }
+  };
+
+  const getOcrBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'Completed': return 'completed';
+      case 'Processing': return 'inprogress';
+      default: return 'delayed';
+    }
+  };
+
+  const getVerifyBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'Approved': return 'completed';
+      case 'Pending': return 'pending';
+      default: return 'delayed';
+    }
+  };
+
+  const getOcrBadgeText = (status: string) => {
+    switch (status) {
+      case 'Completed': return t('docs.ocr_complete');
+      case 'Processing': return t('docs.processing');
+      default: return t('docs.ocr_failed');
+    }
+  };
+
+  const getVerifyBadgeText = (status: string) => {
+    switch (status) {
+      case 'Approved': return t('docs.verified');
+      case 'Pending': return t('docs.pending');
+      default: return t('docs.rejected');
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pb-4 border-b border-primary/10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Document List</h1>
-          <p className="text-sm text-slate-500">Track OCR text extraction pipelines and verify project invoice metadata.</p>
+          <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl font-outfit">{t('docs.title')}</h1>
+          <p className="text-xs text-text-muted">
+            {language === 'hi' 
+              ? 'OCR पाठ निष्कर्षण पाइपलाइनों को ट्रैक करें और परियोजना चालान मेटाडेटा सत्यापित करें।' 
+              : 'Track OCR text extraction pipelines and verify project invoice metadata.'}
+          </p>
         </div>
       </div>
 
       {alert && (
-        <div className={`flex items-center justify-between rounded-lg border p-4 text-sm ${
-          alert.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'
-        }`}>
-          <span>{alert.text}</span>
-          <button onClick={() => setAlert(null)} className="font-semibold uppercase tracking-wider text-xs">Dismiss</button>
+        <div 
+          className={`flex items-center justify-between rounded-lg border p-4 text-xs ${
+            alert.type === 'error' 
+              ? 'bg-danger-bg border-danger/20 text-danger' 
+              : 'bg-primary-bg2 border-primary/20 text-primary'
+          }`}
+        >
+          <span>{alert.message}</span>
+          <button onClick={() => setAlert(null)} className="font-bold uppercase tracking-wider text-[10px] cursor-pointer">{t('common.close')}</button>
         </div>
       )}
 
       {/* Filters Toolbar */}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div 
+        className="flex flex-wrap items-center gap-4 rounded-lg border p-4 shadow-sm"
+        style={{
+          backgroundColor: '#f7faf8',
+          borderColor: 'rgba(26, 92, 56, 0.12)'
+        }}
+      >
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-primary-light">
             <Search className="h-4 w-4" />
           </div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="block w-full rounded-lg border border-slate-200 pl-9 pr-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none"
-            placeholder="Search by file name..."
+            className="block w-full rounded-lg border border-primary/20 bg-white pl-9 pr-3 py-1.5 text-xs text-text-body placeholder-text-hint focus:outline-none focus:border-primary transition duration-150"
+            placeholder={t('docs.search_placeholder')}
           />
         </div>
 
@@ -125,9 +165,9 @@ const DocumentList: React.FC = () => {
         <select
           value={docType}
           onChange={(e) => setDocType(e.target.value)}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none"
+          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
         >
-          <option value="">All Formats</option>
+          <option value="">{t('docs.all_formats')}</option>
           <option value="PDF">PDF</option>
           <option value="JPG">JPG/JPEG</option>
           <option value="PNG">PNG</option>
@@ -139,130 +179,100 @@ const DocumentList: React.FC = () => {
         <select
           value={ocrStatus}
           onChange={(e) => setOcrStatus(e.target.value)}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none"
+          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
         >
-          <option value="">All OCR Statuses</option>
-          <option value="Processing">Processing</option>
-          <option value="Completed">Completed</option>
-          <option value="Failed">Failed</option>
+          <option value="">{t('docs.all_ocr')}</option>
+          <option value="Processing">{t('docs.processing')}</option>
+          <option value="Completed">{t('docs.ocr_complete')}</option>
+          <option value="Failed">{t('docs.ocr_failed')}</option>
         </select>
 
         {/* Verification Status */}
         <select
           value={verificationStatus}
           onChange={(e) => setVerificationStatus(e.target.value)}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none"
+          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
         >
-          <option value="">All Verification Statuses</option>
-          <option value="Pending">Pending Verification</option>
-          <option value="Approved">Approved</option>
-          <option value="Rejected">Rejected</option>
+          <option value="">{t('docs.all_verify')}</option>
+          <option value="Pending">{t('docs.pending')}</option>
+          <option value="Approved">{t('docs.verified')}</option>
+          <option value="Rejected">{t('docs.rejected')}</option>
         </select>
       </div>
 
       {/* List Table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-          </div>
-        ) : documents.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center text-slate-400">
-            <AlertTriangle className="h-8 w-8 stroke-1" />
-            <span className="mt-2 text-sm font-medium">No documents uploaded yet.</span>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-4">Doc ID</th>
-                  <th className="px-6 py-4">File Details</th>
-                  <th className="px-6 py-4">Upload Info</th>
-                  <th className="px-6 py-4">OCR Status</th>
-                  <th className="px-6 py-4">Verification</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white text-slate-700">
-                {documents.map((doc) => (
-                  <tr key={doc.document_id} className="hover:bg-slate-50/75">
-                    <td className="px-6 py-4 font-mono font-semibold text-slate-500">
-                      #{doc.document_id}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900 line-clamp-1">{doc.file_name}</div>
-                      <div className="text-xs text-slate-400">Format: {doc.file_type}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>{new Date(doc.upload_date).toLocaleDateString()}</div>
-                      <div className="text-xs text-slate-400">Uploaded By ID: {doc.uploaded_by || 'N/A'}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center space-x-1 rounded px-2 py-0.5 text-xs font-medium ${
-                        doc.ocr_status === 'Completed'
-                          ? 'bg-green-50 text-green-700'
-                          : doc.ocr_status === 'Processing'
-                            ? 'bg-blue-50 text-blue-700 animate-pulse'
-                            : 'bg-red-50 text-red-700'
-                      }`}>
-                        {doc.ocr_status === 'Processing' && <Loader2 className="h-3 w-3 animate-spin" />}
-                        {doc.ocr_status === 'Completed' && <CheckCircle className="h-3 w-3" />}
-                        {doc.ocr_status === 'Failed' && <XCircle className="h-3 w-3" />}
-                        <span>{doc.ocr_status}</span>
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5 ${
-                        doc.verification_status === 'Approved'
-                          ? 'bg-green-100 text-green-800'
-                          : doc.verification_status === 'Pending'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}>
-                        {doc.verification_status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        {/* Verify / View Details */}
-                        <button
-                          onClick={() => navigate(`/documents/${doc.document_id}/verify`)}
-                          className="rounded p-1 text-primary-500 hover:bg-slate-100"
-                          title="Verify Data / View Details"
-                          disabled={doc.ocr_status === 'Processing'}
-                        >
-                          <Eye className="h-4.5 w-4.5" />
-                        </button>
+      {loading ? (
+        <div className="flex h-64 items-center justify-center">
+          <Spinner size={32} label={t('common.loading')} />
+        </div>
+      ) : documents.length === 0 ? (
+        <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-white rounded-xl border border-primary/10">
+          <AlertTriangle className="h-8 w-8 stroke-1 text-primary-light" />
+          <span className="mt-2 text-xs font-medium">{t('common.nodata')}</span>
+        </div>
+      ) : (
+        <Table headers={[t('docs.doc_id'), t('docs.file_details'), t('docs.upload_info'), t('docs.ocr_status'), t('docs.verification'), t('common.actions')]}>
+          {documents.map((doc, idx) => (
+            <TableRow key={doc.document_id} index={idx}>
+              <TableCell className="font-mono font-semibold text-primary-light">
+                #{doc.document_id}
+              </TableCell>
+              <TableCell>
+                <div className="font-semibold text-text-body line-clamp-1">{doc.file_name}</div>
+                <div className="text-[11px] text-text-muted">{t('docs.doc_type')}: {doc.file_type}</div>
+              </TableCell>
+              <TableCell>
+                <div>{new Date(doc.upload_date).toLocaleDateString()}</div>
+                <div className="text-[11px] text-text-muted">{t('docs.uploaded_by')} ID: {doc.uploaded_by || 'N/A'}</div>
+              </TableCell>
+              <TableCell>
+                <Badge variant={getOcrBadgeVariant(doc.ocr_status)}>
+                  {getOcrBadgeText(doc.ocr_status)}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge variant={getVerifyBadgeVariant(doc.verification_status)}>
+                  {getVerifyBadgeText(doc.verification_status)}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end space-x-1.5">
+                  {/* Verify / View Details */}
+                  <Button
+                    variant="icon"
+                    onClick={() => navigate(`/documents/${doc.document_id}/verify`)}
+                    title={t('docs.verify_title')}
+                    disabled={doc.ocr_status === 'Processing'}
+                  >
+                    <Eye className="h-4.5 w-4.5" />
+                  </Button>
 
-                        {/* Download Original File */}
-                        <button
-                          onClick={() => handleDownload(doc)}
-                          className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-                          title="Download Original File"
-                        >
-                          <Download className="h-4.5 w-4.5" />
-                        </button>
+                  {/* Download Original File */}
+                  <Button
+                    variant="icon"
+                    onClick={() => handleDownload(doc)}
+                    title={t('common.download')}
+                  >
+                    <Download className="h-4.5 w-4.5" />
+                  </Button>
 
-                        {/* Delete Button (Restricted) */}
-                        {(user?.role === 'Admin' || user?.role === 'Manager') && (
-                          <button
-                            onClick={() => handleDelete(doc.document_id)}
-                            className="rounded p-1 text-red-500 hover:bg-red-50 hover:text-red-700"
-                            title="Delete Document"
-                          >
-                            <Trash2 className="h-4.5 w-4.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                  {/* Delete Button (Restricted) */}
+                  {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                    <Button
+                      variant="icon"
+                      onClick={() => handleDelete(doc.document_id)}
+                      className="text-danger hover:bg-danger-bg hover:text-danger"
+                      title={t('common.delete')}
+                    >
+                      <Trash2 className="h-4.5 w-4.5" />
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </Table>
+      )}
     </div>
   );
 };

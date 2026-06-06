@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   LayoutDashboard, 
   Users, 
@@ -9,7 +10,6 @@ import {
   FolderGit, 
   TrendingUp, 
   FilePieChart, 
-  History,
   ShieldCheck
 } from 'lucide-react';
 
@@ -19,85 +19,111 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   
   if (!user) return null;
 
   const menuItems = [
     {
-      name: 'Dashboard',
+      key: 'nav.dashboard',
       path: '/dashboard',
       icon: LayoutDashboard,
       roles: ['Admin', 'Manager', 'Operator', 'Viewer']
     },
     {
-      name: 'User Management',
+      key: 'nav.users',
       path: '/admin/users',
       icon: Users,
       roles: ['Admin']
     },
     {
-      name: 'Upload Document',
+      key: 'nav.upload',
       path: '/documents/upload',
       icon: Upload,
       roles: ['Admin', 'Manager', 'Operator']
     },
     {
-      name: 'Document List',
+      key: 'nav.documents',
       path: '/documents',
       icon: FileText,
       roles: ['Admin', 'Manager', 'Operator', 'Viewer']
     },
     {
-      name: 'Projects',
+      key: 'nav.projects',
       path: '/projects',
       icon: FolderGit,
       roles: ['Admin', 'Manager', 'Operator', 'Viewer']
     },
     {
-      name: 'Progress Tracker',
+      key: 'nav.progress',
       path: '/progress',
       icon: TrendingUp,
       roles: ['Admin', 'Manager', 'Operator']
     },
     {
-      name: 'Reports Hub',
+      key: 'nav.reports',
       path: '/reports',
       icon: FilePieChart,
       roles: ['Admin', 'Manager', 'Viewer']
     },
     {
-      name: 'Audit Trail',
+      key: 'nav.audit',
       path: '/admin/audit-log',
       icon: ShieldCheck,
       roles: ['Admin']
     }
   ];
 
+  const getTranslatedRole = (role: string) => {
+    switch (role) {
+      case 'Admin': return t('users.role.admin');
+      case 'Manager': return t('users.role.manager');
+      case 'Operator': return t('users.role.operator');
+      default: return t('users.role.viewer');
+    }
+  };
+
   const filteredItems = menuItems.filter(item => item.roles.includes(user.role));
 
   return (
     <aside 
-      className={`fixed top-0 bottom-0 left-0 z-20 flex flex-col bg-slate-900 text-slate-100 transition-all duration-300 ${
-        isOpen ? 'w-64' : 'w-20'
+      className={`fixed top-0 bottom-0 z-20 flex flex-col transition-all duration-300 ${
+        isOpen 
+          ? 'w-[240px] left-0' 
+          : 'w-[240px] -left-[240px] md:left-0 md:w-16'
       }`}
+      style={{
+        backgroundColor: '#1a5c38',
+        borderRight: '1px solid rgba(201, 168, 76, 0.15)'
+      }}
     >
       {/* Brand Header */}
-      <div className="flex h-16 items-center justify-between border-b border-slate-800 px-4">
+      <div 
+        className={`flex h-14 items-center ${isOpen ? 'px-4' : 'justify-center px-0'}`}
+        style={{ backgroundColor: '#145030' }}
+      >
         <div className="flex items-center space-x-3 overflow-hidden">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-500 font-bold text-white shadow-md">
+          <div 
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-bold text-md shadow"
+            style={{ backgroundColor: '#145030', color: '#c9a84c', border: '1px solid rgba(201, 168, 76, 0.3)' }}
+          >
             JBO
           </div>
           {isOpen && (
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-wider text-slate-100 leading-tight">JHARKHAND BIJLI</span>
-              <span className="text-[10px] text-slate-400 font-medium">Electricity Department</span>
+              <span className="text-xs font-bold tracking-wider text-white leading-tight font-outfit uppercase">
+                {t('app.name')}
+              </span>
+              <span className="text-[8px] text-white/50 font-medium">
+                {t('app.department')}
+              </span>
             </div>
           )}
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 space-y-1 py-4 px-3 overflow-y-auto">
+      <nav className="flex-1 space-y-1.5 py-4 px-3 overflow-y-auto">
         {filteredItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -105,25 +131,57 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center rounded-lg py-2.5 px-3.5 text-sm font-medium transition-all duration-150 ${
+                `flex items-center py-2.5 rounded-lg transition-all duration-150 hover:bg-white/10 hover:text-white hover:[&_svg]:text-[#c9a84c] ${
+                  isOpen ? 'px-3 text-[13px]' : 'justify-center mx-1'
+                } ${
                   isActive
-                    ? 'bg-primary-500 text-white shadow-sm'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                    ? 'bg-[rgba(201,168,76,0.15)] text-white border-l-[3px] border-l-[#c9a84c] font-medium [&_svg]:text-[#c9a84c]'
+                    : 'text-white/70 [&_svg]:text-white/60'
                 }`
               }
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              {isOpen && <span className="ml-3 transition-opacity duration-300">{item.name}</span>}
+              <Icon className="h-4.5 w-4.5 shrink-0 transition-colors" />
+              {isOpen && <span className="ml-3 transition-opacity duration-300">{t(item.key)}</span>}
             </NavLink>
           );
         })}
       </nav>
 
+      {/* 1. Bottom User Card */}
+      {user && (
+        <div 
+          className="p-3 border-t border-white/10" 
+          style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}
+        >
+          <div className={`flex items-center overflow-hidden ${isOpen ? 'space-x-3' : 'justify-center'}`}>
+            <div 
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold text-sm shadow-sm"
+              style={{ backgroundColor: '#c9a84c', color: '#1a5c38' }}
+            >
+              {user.full_name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            {isOpen && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-[12px] font-bold text-white truncate leading-tight">
+                  {user.full_name}
+                </span>
+                <span 
+                  className="mt-1 inline-flex w-max rounded px-1.5 py-0.5 text-[8.5px] font-bold tracking-wider uppercase leading-none"
+                  style={{ backgroundColor: 'rgba(201,168,76,0.2)', color: '#c9a84c' }}
+                >
+                  {getTranslatedRole(user.role)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Footer System Info */}
       {isOpen && (
-        <div className="border-t border-slate-800 p-4 text-[10px] text-slate-500 text-center">
-          <p>© 2026 Jharkhand Bijli Office</p>
-          <p className="mt-0.5 font-mono text-[9px]">v1.0.0 (Secure RBAC)</p>
+        <div className="border-t border-white/10 p-3 text-[9px] text-white/30 text-center">
+          <p>&copy; 2026 {t('app.name')}</p>
+          <p className="mt-0.5 font-mono text-[8px]">v1.0.0 (Secure RBAC)</p>
         </div>
       )}
     </aside>

@@ -6,6 +6,9 @@ try:
     from database import get_db
     from models.user import User
     from models.department import Department
+    from models.document import MasterDocument
+    from models.progress import ProgressHistory
+    from models.audit import AuditLog
     from schemas.user import UserResponse, UserUpdate, UserResetPassword
     from routers.auth import require_role, get_password_hash
     from services.audit_service import log_action
@@ -13,6 +16,9 @@ except ImportError:
     from backend.database import get_db
     from backend.models.user import User
     from backend.models.department import Department
+    from backend.models.document import MasterDocument
+    from backend.models.progress import ProgressHistory
+    from backend.models.audit import AuditLog
     from backend.schemas.user import UserResponse, UserUpdate, UserResetPassword
     from backend.routers.auth import require_role, get_password_hash
     from backend.services.audit_service import log_action
@@ -150,6 +156,16 @@ def delete_user(
 
     if user.user_id == current_user.user_id:
         raise HTTPException(status_code=400, detail="Admins cannot delete their own account")
+
+    # Set references in master_document to NULL
+    db.query(MasterDocument).filter(MasterDocument.uploaded_by == user_id).update({MasterDocument.uploaded_by: None})
+    db.query(MasterDocument).filter(MasterDocument.approved_by == user_id).update({MasterDocument.approved_by: None})
+    
+    # Set references in progress_history to NULL
+    db.query(ProgressHistory).filter(ProgressHistory.updated_by == user_id).update({ProgressHistory.updated_by: None})
+    
+    # Set references in audit_log to NULL
+    db.query(AuditLog).filter(AuditLog.user_id == user_id).update({AuditLog.user_id: None})
 
     db.delete(user)
     db.commit()
