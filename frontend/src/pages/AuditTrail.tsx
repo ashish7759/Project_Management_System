@@ -54,18 +54,38 @@ const AuditTrail: React.FC = () => {
     fetchLogs();
   }, [username, actionType, startDate, endDate]);
 
-  const handleExportCSV = () => {
-    const queryParts = [];
-    if (username) queryParts.push(`username=${username}`);
-    if (actionType) queryParts.push(`action_type=${actionType}`);
-    if (startDate) queryParts.push(`start_date=${startDate}`);
-    if (endDate) queryParts.push(`end_date=${endDate}`);
+  const handleExportCSV = async () => {
+    setAlert(null);
+    try {
+      const params: any = {};
+      if (username) params.username = username;
+      if (actionType) params.action_type = actionType;
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
 
-    const token = localStorage.getItem('token');
-    if (token) queryParts.push(`token=${token}`);
+      const response = await api.get('/audit-logs/export', {
+        params,
+        responseType: 'blob'
+      });
 
-    const exportUrl = `http://localhost:8000/api/v1/audit-logs/export?${queryParts.join('&')}`;
-    window.open(exportUrl, '_blank');
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `audit_log_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      setAlert({ 
+        type: 'error', 
+        text: language === 'hi' 
+          ? 'ऑडिट लॉग निर्यात करने में विफल। कृपया पुन: प्रयास करें।' 
+          : 'Failed to export audit logs. Please try again.' 
+      });
+    }
   };
 
   const getActionBadgeClass = (action: string) => {

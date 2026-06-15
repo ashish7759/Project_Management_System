@@ -2,26 +2,16 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-try:
-    from database import get_db
-    from models.user import User
-    from models.department import Department
-    from models.document import MasterDocument
-    from models.progress import ProgressHistory
-    from models.audit import AuditLog
-    from schemas.user import UserResponse, UserUpdate, UserResetPassword
-    from routers.auth import require_role, get_password_hash
-    from services.audit_service import log_action
-except ImportError:
-    from backend.database import get_db
-    from backend.models.user import User
-    from backend.models.department import Department
-    from backend.models.document import MasterDocument
-    from backend.models.progress import ProgressHistory
-    from backend.models.audit import AuditLog
-    from backend.schemas.user import UserResponse, UserUpdate, UserResetPassword
-    from backend.routers.auth import require_role, get_password_hash
-    from backend.services.audit_service import log_action
+from database import get_db
+from models.user import User
+from models.department import Department
+from models.document import MasterDocument
+from models.progress import ProgressHistory
+from models.audit import AuditLog
+from schemas.user import UserResponse, UserUpdate, UserResetPassword
+from routers.auth import require_role, get_password_hash
+from services.audit_service import log_action
+
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 

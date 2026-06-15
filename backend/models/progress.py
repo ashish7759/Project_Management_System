@@ -1,9 +1,7 @@
 from sqlalchemy import Column, Integer, NVARCHAR, DateTime, Date, DECIMAL, ForeignKey, text
 from sqlalchemy.orm import relationship
-try:
-    from database import Base
-except ImportError:
-    from backend.database import Base
+from database import Base
+
 
 
 class Milestone(Base):
@@ -17,6 +15,7 @@ class Milestone(Base):
     target_date = Column(Date, nullable=False)
     planned_progress = Column(DECIMAL(5, 2), nullable=False)
     created_at = Column(DateTime, server_default=text("GETDATE()"), nullable=False)
+    description = Column(NVARCHAR(255), nullable=True)
 
     project = relationship("Project")
 
@@ -36,3 +35,6 @@ class ProgressHistory(Base):
 
     project = relationship("Project")
     updater = relationship("User")
+
+Progress = ProgressHistory
+

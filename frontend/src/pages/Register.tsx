@@ -14,7 +14,7 @@ import LanguageToggle from '../components/ui/LanguageToggle';
 const Register: React.FC = () => {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
-  const { t, language } = useLanguage();
+  const { t, language, getTranslatedDept } = useLanguage();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -201,7 +201,7 @@ const Register: React.FC = () => {
               <option value="">{t('auth.select_dept')}</option>
               {departments.map((dept) => (
                 <option key={dept} value={dept}>
-                  {t('dept.' + dept.toLowerCase())}
+                  {getTranslatedDept(dept)}
                 </option>
               ))}
             </Select>

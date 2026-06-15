@@ -1,4 +1,4 @@
-# Jharkhand Bijli Office (JBO) - Project Management & Document Intelligence System
+# Jharkhand Bijli Vitran Nigam Limited (JBVNL) - Project Management & Document Intelligence System
 
 This is a production-grade, secure, and role-based enterprise web application designed to digitize document management, automate data extraction via OCR & AI (GPT-4o), and monitor electricity infrastructure projects for the Jharkhand Bijli Vitran Nigam Limited.
 
@@ -21,7 +21,7 @@ This is a production-grade, secure, and role-based enterprise web application de
 - **Security**: JWT Authentication (python-jose) + Bcrypt password hashing + brute force rate limiting
 - **OCR Engine**: Tesseract OCR + EasyOCR (English character fallback)
 - **AI Integration**: OpenAI API (GPT-4o) for metadata extraction
-- **Reporting**: ReportLab (official JBO letterhead PDF) + OpenPyXL (styled Excel workbooks)
+- **Reporting**: ReportLab (official JBVNL letterhead PDF) + OpenPyXL (styled Excel workbooks)
 
 ### Database
 - **Database Engine**: Microsoft SQL Server (MS SQL Server)

@@ -3,30 +3,28 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-try:
-    from database import get_db
-    from models.user import User
-    from models.project import Project
-    from models.document import MasterDocument
-    from models.contractor import Contractor
-    from models.progress import ProgressHistory, Milestone
-    from models.audit import AuditLog
-    from schemas.project import ProjectResponse, ProjectCreate, ProjectUpdate, ContractorResponse, LocationResponse
-    from routers.auth import get_current_user, require_role
-    from services.audit_service import log_action
-except ImportError:
-    from backend.database import get_db
-    from backend.models.user import User
-    from backend.models.project import Project
-    from backend.models.document import MasterDocument
-    from backend.models.contractor import Contractor
-    from backend.models.progress import ProgressHistory, Milestone
-    from backend.models.audit import AuditLog
-    from backend.schemas.project import ProjectResponse, ProjectCreate, ProjectUpdate, ContractorResponse, LocationResponse
-    from backend.routers.auth import get_current_user, require_role
-    from backend.services.audit_service import log_action
+from database import get_db
+from models.user import User
+from models.project import Project
+from models.document import MasterDocument
+from models.contractor import Contractor
+from models.progress import ProgressHistory, Milestone
+from models.audit import AuditLog
+from schemas.project import ProjectResponse, ProjectCreate, ProjectUpdate, ContractorResponse, LocationResponse, DepartmentMiniResponse
+from routers.auth import get_current_user, require_role
+from services.audit_service import log_action
+
 
 router = APIRouter(prefix="/projects", tags=["Project Management"])
+
+@router.get("/departments", response_model=List[DepartmentMiniResponse])
+def list_departments(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Admin", "Manager", "Operator", "Viewer"]))
+):
+    from models.department import Department
+    return db.query(Department).all()
+
 
 @router.get("", response_model=List[ProjectResponse])
 def list_projects(
@@ -178,7 +176,8 @@ def get_project_details(
             {
                 "milestone_id": m.milestone_id,
                 "target_date": m.target_date,
-                "planned_progress": float(m.planned_progress)
+                "planned_progress": float(m.planned_progress),
+                "description": m.description
             } for m in milestones
         ],
         "activity_log": audits

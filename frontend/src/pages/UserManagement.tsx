@@ -19,7 +19,7 @@ import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 
 const UserManagement: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t, language, getTranslatedDept } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,14 +56,8 @@ const UserManagement: React.FC = () => {
 
   const fetchDepartments = async () => {
     try {
-      setDepartments([
-        { department_id: 1, department_name: 'Engineering' },
-        { department_id: 2, department_name: 'Finance' },
-        { department_id: 3, department_name: 'Operations' },
-        { department_id: 4, department_name: 'HR' },
-        { department_id: 5, department_name: 'IT' },
-        { department_id: 6, department_name: 'Administration' }
-      ]);
+      const res = await api.get('/projects/departments');
+      setDepartments(res.data);
     } catch (err) {
       console.warn("Failed to load departments");
     }
@@ -72,6 +66,25 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    const handleDatabaseUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const changes = customEvent.detail?.changes || [];
+      const hasDeptChanges = changes.some((c: any) => c.table === 'department');
+      if (hasDeptChanges) {
+        console.log('[Realtime] Re-fetching department list due to DB updates.');
+        fetchDepartments();
+      }
+      const hasUserChanges = changes.some((c: any) => c.table === 'user_account');
+      if (hasUserChanges) {
+        console.log('[Realtime] Re-fetching user list due to DB updates.');
+        fetchUsers();
+      }
+    };
+    window.addEventListener('database-update', handleDatabaseUpdate);
+    return () => window.removeEventListener('database-update', handleDatabaseUpdate);
+  }, [selectedDept, selectedRole, selectedStatus]);
 
   useEffect(() => {
     fetchUsers();
@@ -171,7 +184,7 @@ const UserManagement: React.FC = () => {
         >
           <option value="">{t('projects.all_depts')}</option>
           {departments.map(d => (
-            <option key={d.department_id} value={d.department_name}>{t('dept.' + d.department_name.toLowerCase())}</option>
+            <option key={d.department_id} value={d.department_name}>{getTranslatedDept(d.department_name)}</option>
           ))}
         </select>
 
@@ -229,7 +242,7 @@ const UserManagement: React.FC = () => {
                   className="inline-flex rounded px-2 py-0.5 text-xs font-medium"
                   style={{ backgroundColor: 'rgba(26, 92, 56, 0.08)', color: '#1a5c38' }}
                 >
-                  {u.department?.department_name ? t('dept.' + u.department.department_name.toLowerCase()) : 'General'}
+                  {getTranslatedDept(u.department?.department_name)}
                 </span>
               </TableCell>
               <TableCell>

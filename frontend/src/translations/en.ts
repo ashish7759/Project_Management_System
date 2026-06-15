@@ -1,7 +1,7 @@
 const en: Record<string, string> = {
 
   // ── COMMON ──────────────────────────────────────────────
-  'app.name'                    : 'Jharkhand Bijli Office',
+  'app.name'                    : 'Jharkhand Bijli Vitran Nigam Limited',
   'app.tagline'                 : 'AI-Powered Project Management & Document Intelligence System',
   'app.department'              : 'Government of Jharkhand · Energy Department',
   'app.subtitle'                 : 'Document & Project Intelligence',
@@ -57,6 +57,7 @@ const en: Record<string, string> = {
   'auth.invalid_credentials'    : 'Invalid username or password.',
   'auth.account_pending'        : 'Your account is pending approval.',
   'auth.account_inactive'       : 'Your account has been deactivated.',
+  'auth.server_error'           : 'Cannot connect to server. Please check if the backend is running.',
 
   // ── NAVIGATION ───────────────────────────────────────────
   'nav.dashboard'               : 'Dashboard',
@@ -358,6 +359,31 @@ const en: Record<string, string> = {
   'auth.access_denied_desc'             : 'You do not have the required administrative permissions to access this screen. Please contact your Jharkhand Bijli IT administrator if you believe this is an error.',
   'auth.back_to_dashboard'              : 'Back to Dashboard',
 
+  // ── INTRO PAGE ───────────────────────────────────────────
+  'app.description'                     : 'A centralized digital platform for document management, OCR-based data extraction, project tracking, and transparent reporting for the Jharkhand Energy Department.',
+  'intro.login_btn'                     : 'Login to Portal',
+  'intro.about_btn'                     : 'About System',
+  'intro.secure_access'                 : 'Secure Access',
+  'intro.role_based'                    : 'Role Based',
+  'intro.gov_verified'                  : 'Government Verified',
+  'intro.system_online'                 : 'System Online',
+  'intro.version'                       : 'Version',
+  'intro.about_title'                   : 'About Jharkhand JBVNL System',
+  'intro.about_desc'                    : 'The Jharkhand Bijli Vitran Nigam Limited (JBVNL) Document Intelligence & Project Management System is a state-of-the-art enterprise solution designed to streamline digital administration.',
+  'intro.key_functional_areas'          : 'Key Functional Areas',
+  'intro.area_ocr'                      : 'AI OCR Extraction: Automated text parsing of work orders and invoice credentials.',
+  'intro.area_milestones'               : 'Project Milestones: Dynamic tracking of grid expansion works and physical progress.',
+  'intro.area_rbac'                     : 'Secure RBAC: Strict role-based control ensuring secure document verification.',
+  'intro.area_audit'                    : 'Audit Trail logs: Detailed compliance monitoring and logging for full transparency.',
+  'intro.developer'                     : 'Developer: Energy Dept IT Wing',
+  'intro.security_protocol'             : 'Security Protocol: AES-256',
+  'intro.close_spec'                    : 'Close Spec',
+  'intro.feat_ocr_title'                : 'AI Document OCR',
+  'intro.feat_ocr_desc'                 : 'Automated data parsing of contractor sheets, work orders, and invoices.',
+  'intro.feat_proj_title'               : 'Milestone Analytics',
+  'intro.feat_proj_desc'                : 'Real-time tracking of physical progress and budget variance vs targets.',
+  'intro.feat_audit_title'              : 'Secure Audit Trails',
+  'intro.feat_audit_desc'               : 'Strict role-based access checks and comprehensive security history logs.',
 };
 
 export default en;

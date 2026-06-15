@@ -59,17 +59,19 @@ const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar, isSidebarOpen }) => {
         >
           <Menu className="h-5.5 w-5.5" />
         </button>
-        <span 
-          className="hidden text-[18px] font-medium sm:block tracking-tight font-outfit"
-          style={{ color: '#1a5c38' }}
-        >
-          {t('app.name')}
-        </span>
+        {!isSidebarOpen && (
+          <span 
+            className="hidden text-[18px] font-medium sm:block tracking-tight font-outfit"
+            style={{ color: '#1a5c38' }}
+          >
+            {t('app.name')}
+          </span>
+        )}
         <span 
           className="text-xs font-semibold uppercase sm:block hidden"
           style={{ color: '#c9a84c' }}
         >
-          | {t('app.subtitle')}
+          {isSidebarOpen ? t('app.subtitle') : `| ${t('app.subtitle')}`}
         </span>
       </div>
 

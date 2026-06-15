@@ -59,6 +59,7 @@ interface ProjectDetailData {
     milestone_id: number;
     target_date: string;
     planned_progress: number;
+    description: string | null;
   }>;
   activity_log: Array<{
     username: string;
@@ -70,7 +71,7 @@ interface ProjectDetailData {
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t, language } = useLanguage();
+  const { t, language, getTranslatedDept } = useLanguage();
   const [data, setData] = useState<ProjectDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -89,6 +90,38 @@ const ProjectDetail: React.FC = () => {
 
   useEffect(() => {
     fetchDetails();
+  }, [id]);
+
+  useEffect(() => {
+    const handleDatabaseUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const changes = customEvent.detail?.changes || [];
+      const hasRelatedChanges = changes.some((c: any) => {
+        if (c.table === 'project' && c.row_id === id) return true;
+        if (
+          c.table === 'milestone' ||
+          c.table === 'progress_history' ||
+          c.table === 'master_document' ||
+          c.table === 'contractor' ||
+          c.table === 'location'
+        ) return true;
+        return false;
+      });
+
+      if (hasRelatedChanges) {
+        console.log(`[Realtime] Re-fetching project details for ID ${id} due to DB changes.`);
+        // Perform a silent background refresh to prevent layout shift loading spinners
+        api.get(`/projects/${id}`)
+          .then(res => {
+            setData(res.data);
+          })
+          .catch(err => {
+            console.error('[Realtime] Failed to background refresh project details:', err);
+          });
+      }
+    };
+    window.addEventListener('database-update', handleDatabaseUpdate);
+    return () => window.removeEventListener('database-update', handleDatabaseUpdate);
   }, [id]);
 
   if (loading) {
@@ -148,7 +181,7 @@ const ProjectDetail: React.FC = () => {
               className="inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase"
               style={{ color: '#2e7d52', backgroundColor: '#eaf4ee', borderColor: 'rgba(46, 125, 82, 0.3)' }}
             >
-              {project.department_name ? t('dept.' + project.department_name.toLowerCase()) : 'General'}
+              {getTranslatedDept(project.department_name)}
             </span>
             <h2 className="mt-2 text-xl font-semibold text-primary font-outfit">{project.project_name}</h2>
           </div>
@@ -323,10 +356,13 @@ const ProjectDetail: React.FC = () => {
           ) : (
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {milestones.map(m => (
-                <div key={m.milestone_id} className="flex items-center justify-between border-b border-primary/6 py-2 text-xs last:border-0">
+                <div key={m.milestone_id} className="flex items-center justify-between border-b border-primary/6 py-2.5 text-xs last:border-0">
                   <div className="flex items-center">
-                    <CheckCircle className="mr-2 h-4 w-4 text-text-hint" />
-                    <span>{t('projects.detail.target_date')} <span className="font-semibold">{m.target_date}</span></span>
+                    <CheckCircle className="mr-2 h-4.5 w-4.5 text-primary-light flex-shrink-0" />
+                    <div className="flex flex-col select-none">
+                      <span className="font-semibold text-text-body">{m.description || (language === 'hi' ? 'मील का पत्थर' : 'Milestone Target')}</span>
+                      <span className="text-[10px] text-text-hint mt-0.5">{t('projects.detail.target_date')} <span className="font-semibold">{m.target_date}</span></span>
+                    </div>
                   </div>
                   <span className="font-bold text-accent-dark bg-accent-light px-2 py-0.5 rounded border border-accent/20">{m.planned_progress}%</span>
                 </div>

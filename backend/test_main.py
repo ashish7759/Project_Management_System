@@ -1,14 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
 
-try:
-    from main import app
-    from database import Base
-    from models import User, Department, MasterDocument, Project, Contractor, Location, Milestone, ProgressHistory, AuditLog
-except ImportError:
-    from backend.main import app
-    from backend.database import Base
-    from backend.models import User, Department, MasterDocument, Project, Contractor, Location, Milestone, ProgressHistory, AuditLog
+from main import app
+from database import Base
+from models import User, Department, MasterDocument, Project, Contractor, Location, Milestone, ProgressHistory, AuditLog
+
 
 client = TestClient(app)
 

@@ -8,6 +8,7 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  getTranslatedDept: (deptName: string | null | undefined) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -27,8 +28,15 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
     return translations[key] || key;
   };
 
+  const getTranslatedDept = (deptName: string | null | undefined): string => {
+    if (!deptName) return language === 'hi' ? 'सामान्य' : 'General';
+    const key = `dept.${deptName.toLowerCase()}`;
+    const translations = language === 'hi' ? hi : en;
+    return translations[key] || deptName;
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, getTranslatedDept }}>
       {children}
     </LanguageContext.Provider>
   );

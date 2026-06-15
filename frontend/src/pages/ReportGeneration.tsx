@@ -15,7 +15,7 @@ import Spinner from '../components/ui/Spinner';
 import { Table, TableRow, TableCell } from '../components/ui/Table';
 
 const ReportGeneration: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t, language, getTranslatedDept } = useLanguage();
   const [reportType, setReportType] = useState<number>(1);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -79,15 +79,9 @@ const ReportGeneration: React.FC = () => {
   const fetchFiltersData = async () => {
     setLoadingFilters(true);
     try {
-      // Pre-fill departments
-      setDepartments([
-        { department_id: 1, department_name: 'Engineering' },
-        { department_id: 2, department_name: 'Finance' },
-        { department_id: 3, department_name: 'Operations' },
-        { department_id: 4, department_name: 'HR' },
-        { department_id: 5, department_name: 'IT' },
-        { department_id: 6, department_name: 'Administration' }
-      ]);
+      // Fetch departments dynamically
+      const deptRes = await api.get('/projects/departments');
+      setDepartments(deptRes.data);
 
       // Fetch projects for filters
       const res = await api.get('/projects');
@@ -101,6 +95,22 @@ const ReportGeneration: React.FC = () => {
 
   useEffect(() => {
     fetchFiltersData();
+  }, []);
+
+  useEffect(() => {
+    const handleDatabaseUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const changes = customEvent.detail?.changes || [];
+      const hasDeptChanges = changes.some((c: any) => c.table === 'department');
+      if (hasDeptChanges) {
+        console.log('[Realtime] Re-fetching department list in ReportGeneration due to DB updates.');
+        api.get('/projects/departments')
+          .then(res => setDepartments(res.data))
+          .catch(err => console.warn(err));
+      }
+    };
+    window.addEventListener('database-update', handleDatabaseUpdate);
+    return () => window.removeEventListener('database-update', handleDatabaseUpdate);
   }, []);
 
   const handleGeneratePreview = async () => {
@@ -128,24 +138,43 @@ const ReportGeneration: React.FC = () => {
     }
   };
 
-  const getExportUrl = (format: 'pdf' | 'excel') => {
-    const queryParts = [`report_type=${reportType}`];
-    if (startDate) queryParts.push(`start_date=${startDate}`);
-    if (endDate) queryParts.push(`end_date=${endDate}`);
-    if (selectedDept) queryParts.push(`department_id=${selectedDept}`);
-    if (selectedProject) queryParts.push(`project_id=${selectedProject}`);
-    if (selectedStatus) queryParts.push(`status=${selectedStatus}`);
-
-    const token = localStorage.getItem('token');
-    if (token) queryParts.push(`token=${token}`); // Append token in case browser authentication is strictly needed
-
-    return `http://localhost:8000/api/v1/reports/export/${format}?${queryParts.join('&')}`;
-  };
-
-  const handleExport = (format: 'pdf' | 'excel') => {
+  const handleExport = async (format: 'pdf' | 'excel') => {
     setAlert(null);
-    const exportUrl = getExportUrl(format);
-    window.open(exportUrl, '_blank');
+    try {
+      const params: any = { report_type: reportType };
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      if (selectedDept) params.department_id = selectedDept;
+      if (selectedProject) params.project_id = selectedProject;
+      if (selectedStatus) params.status = selectedStatus;
+
+      const response = await api.get(`/reports/export/${format}`, {
+        params,
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { 
+        type: format === 'pdf' 
+          ? 'application/pdf' 
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `report_${reportType}_${Date.now()}.${format === 'pdf' ? 'pdf' : 'xlsx'}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      setAlert({ 
+        type: 'error', 
+        text: language === 'hi' 
+          ? 'रिपोर्ट डाउनलोड करने में विफल। कृपया पुन: प्रयास करें।' 
+          : 'Failed to download report. Please try again.' 
+      });
+    }
   };
 
   return (
@@ -235,7 +264,7 @@ const ReportGeneration: React.FC = () => {
                     >
                       <option value="">{t('projects.all_depts')}</option>
                       {departments.map(d => (
-                        <option key={d.department_id} value={d.department_id}>{t('dept.' + d.department_name.toLowerCase())}</option>
+                        <option key={d.department_id} value={d.department_id}>{getTranslatedDept(d.department_name)}</option>
                       ))}
                     </select>
                   </div>

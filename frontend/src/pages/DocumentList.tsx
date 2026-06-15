@@ -55,6 +55,20 @@ const DocumentList: React.FC = () => {
     fetchDocuments();
   }, [search, docType, ocrStatus, verificationStatus]);
 
+  useEffect(() => {
+    const handleDatabaseUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const changes = customEvent.detail?.changes || [];
+      const hasDocumentChanges = changes.some((c: any) => c.table === 'master_document');
+      if (hasDocumentChanges) {
+        console.log('[Realtime] Re-fetching document list due to DB updates.');
+        fetchDocuments();
+      }
+    };
+    window.addEventListener('database-update', handleDatabaseUpdate);
+    return () => window.removeEventListener('database-update', handleDatabaseUpdate);
+  }, [search, docType, ocrStatus, verificationStatus]);
+
   const handleDelete = async (id: number) => {
     if (!window.confirm(t('docs.delete_confirm'))) return;
     try {

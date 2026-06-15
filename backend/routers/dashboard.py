@@ -3,22 +3,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from datetime import datetime, timedelta, timezone
 
-try:
-    from database import get_db
-    from models.user import User
-    from models.project import Project
-    from models.document import MasterDocument
-    from models.department import Department
-    from models.audit import AuditLog
-    from routers.auth import get_current_user, require_role
-except ImportError:
-    from backend.database import get_db
-    from backend.models.user import User
-    from backend.models.project import Project
-    from backend.models.document import MasterDocument
-    from backend.models.department import Department
-    from backend.models.audit import AuditLog
-    from backend.routers.auth import get_current_user, require_role
+from database import get_db
+from models.user import User
+from models.project import Project
+from models.document import MasterDocument
+from models.department import Department
+from models.audit import AuditLog
+from routers.auth import get_current_user, require_role
+
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 

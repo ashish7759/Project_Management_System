@@ -1,5 +1,5 @@
 import io
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict, Any
 
 # openpyxl for Excel reports
@@ -49,7 +49,7 @@ class NumberedCanvas(canvas.Canvas):
         self.line(36, 45, width - 36, 45)
         
         # Footer text
-        footer_text = f"Jharkhand Bijli Office | Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        footer_text = f"Jharkhand Bijli Vitran Nigam Limited | Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         page_text = f"Page {self._pageNumber} of {page_count}"
         
         self.drawString(36, 30, footer_text)
@@ -110,7 +110,7 @@ def generate_excel_report(data: List[Dict[str, Any]], title: str, headers: List[
         for col_idx, key in enumerate(keys, 1):
             val = row_data.get(key, "")
             # Convert date/datetime to string for presentation
-            if isinstance(val, (datetime, datetime.date)):
+            if isinstance(val, (datetime, date)):
                 val = val.strftime('%Y-%m-%d')
             elif val is None:
                 val = ""

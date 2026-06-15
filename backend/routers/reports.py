@@ -5,28 +5,18 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, extract
 
-try:
-    from database import get_db
-    from models.user import User
-    from models.project import Project
-    from models.document import MasterDocument
-    from models.contractor import Contractor
-    from models.department import Department
-    from models.progress import ProgressHistory
-    from routers.auth import get_current_user, require_role
-    from services.report_service import generate_excel_report, generate_pdf_report
-    from services.audit_service import log_action
-except ImportError:
-    from backend.database import get_db
-    from backend.models.user import User
-    from backend.models.project import Project
-    from backend.models.document import MasterDocument
-    from backend.models.contractor import Contractor
-    from backend.models.department import Department
-    from backend.models.progress import ProgressHistory
-    from backend.routers.auth import get_current_user, require_role
-    from backend.services.report_service import generate_excel_report, generate_pdf_report
-    from backend.services.audit_service import log_action
+import io
+from database import get_db
+from models.user import User
+from models.project import Project
+from models.document import MasterDocument
+from models.contractor import Contractor
+from models.department import Department
+from models.progress import ProgressHistory
+from routers.auth import get_current_user, require_role
+from services.report_service import generate_excel_report, generate_pdf_report
+from services.audit_service import log_action
+
 
 router = APIRouter(prefix="/reports", tags=["Report Generation"])
 

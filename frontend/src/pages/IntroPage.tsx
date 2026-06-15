@@ -1,54 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, LogIn, Info, ShieldCheck, Lock, Award, X } from 'lucide-react';
+import { Zap, LogIn, Info, ShieldCheck, Lock, Award, X, FileText, BarChart3 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageToggle from '../components/ui/LanguageToggle';
 
 const IntroPage: React.FC = () => {
   const navigate = useNavigate();
   const [showInfo, setShowInfo] = useState(false);
+  const { t } = useLanguage();
 
   // Set flag indicating that the user has visited the intro page
   useEffect(() => {
     (window as any).__hasVisitedIntro = true;
-  }, []);
-
-  // Counter States
-  const [docCount, setDocCount] = useState(0);
-  const [projectCount, setProjectCount] = useState(0);
-  const [deptCount, setDeptCount] = useState(0);
-  const [userCount, setUserCount] = useState(0);
-
-  // Counter Animation Hook
-  useEffect(() => {
-    let startTimestamp: number | null = null;
-    const duration = 2000;
-    const delay = 1200;
-    let animationFrameId: number;
-
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const elapsed = timestamp - startTimestamp;
-
-      if (elapsed < delay) {
-        animationFrameId = requestAnimationFrame(step);
-        return;
-      }
-
-      const animationProgress = Math.min((elapsed - delay) / duration, 1);
-      // easeOutCubic: 1 - Math.pow(1 - p, 3)
-      const easeProgress = 1 - Math.pow(1 - animationProgress, 3);
-
-      setDocCount(Math.floor(easeProgress * 1240));
-      setProjectCount(Math.floor(easeProgress * 86));
-      setDeptCount(Math.floor(easeProgress * 6));
-      setUserCount(Math.floor(easeProgress * 48));
-
-      if (animationProgress < 1) {
-        animationFrameId = requestAnimationFrame(step);
-      }
-    };
-
-    animationFrameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animationFrameId);
   }, []);
 
   return (
@@ -76,6 +39,10 @@ const IntroPage: React.FC = () => {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 1; }
         }
+        @keyframes rotation {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
 
         .animate-fadeDown {
           animation: fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -90,9 +57,17 @@ const IntroPage: React.FC = () => {
           animation: boltFlash 1.6s infinite ease-in-out;
         }
         .animate-pulseSlow {
-          animation: pulse 2s infinite ease-in-out;
+          animation: pulse 2.5s infinite ease-in-out;
+        }
+        .rotate-slow {
+          animation: rotation 20s infinite linear;
         }
       `}} />
+
+      {/* Floating Language Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageToggle />
+      </div>
 
       {/* 1. TOP COLOR BAR */}
       <div
@@ -142,28 +117,31 @@ const IntroPage: React.FC = () => {
         }}
       />
 
+
+
       {/* Center Layout Panel */}
       <div className="flex flex-col items-center justify-center text-center px-4 md:px-0 max-w-[680px] w-full mx-auto space-y-6 md:space-y-7 z-10">
 
         {/* 5. EMBLEM / ICON SECTION */}
         <div
-          className="relative w-[92px] h-[92px] rounded-full border-[1.5px] flex items-center justify-center shadow-sm"
+          className="relative w-[92px] h-[92px] rounded-full flex items-center justify-center"
           style={{
-            borderColor: '#c9a84c',
-            backgroundColor: '#f9f5ec',
             animation: 'fadeDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) both',
             animationDelay: '0s'
           }}
         >
-          {/* 4 golden dots */}
-          <div className="absolute -top-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-          <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-          <div className="absolute -left-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-          <div className="absolute -right-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+          {/* Rotating outer ring */}
+          <div className="absolute inset-0 rounded-full border-[1.5px] rotate-slow" style={{ borderColor: '#c9a84c' }}>
+            {/* 4 golden dots */}
+            <div className="absolute -top-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+            <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+            <div className="absolute -left-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+            <div className="absolute -right-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+          </div>
 
           {/* Inner circle */}
           <div
-            className="w-[72px] h-[72px] rounded-full flex items-center justify-center shadow"
+            className="w-[72px] h-[72px] rounded-full flex items-center justify-center shadow z-10 transition-transform duration-300 hover:scale-105"
             style={{ backgroundColor: '#1a5c38' }}
           >
             <Zap
@@ -175,53 +153,41 @@ const IntroPage: React.FC = () => {
         </div>
 
         {/* Text Area */}
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {/* 6. GOVERNMENT LABEL */}
           <div
-            className="text-[10px] font-semibold tracking-[2.5px] uppercase"
+            className="text-[10px] md:text-[11px] font-semibold tracking-[2.5px] uppercase"
             style={{
               color: '#888888',
               animation: 'fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
               animationDelay: '200ms'
             }}
           >
-            Government of Jharkhand &middot; Energy Department
+            {t('app.department')}
           </div>
 
-          {/* 7. OFFICE NAME (English) */}
+          {/* 7. OFFICE NAME */}
           <h1
-            className="text-2xl md:text-3xl font-medium tracking-tight"
+            className="text-3xl md:text-4xl font-extrabold tracking-tight py-1"
             style={{
               color: '#1a5c38',
               animation: 'fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
               animationDelay: '350ms'
             }}
           >
-            Jharkhand Bijli Vitran Nigam Limited
+            {t('app.name')}
           </h1>
 
-          {/* 8. OFFICE NAME (Hindi) */}
+          {/* 8. TAGLINE */}
           <div
-            className="text-[13px] font-medium"
+            className="text-[11px] md:text-[12px] font-bold tracking-[1.5px] uppercase px-4"
             style={{
-              color: '#2e7d52',
+              color: '#c9a84c',
               animation: 'fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
               animationDelay: '450ms'
             }}
           >
-            झारखंड बिजली कार्यालय
-          </div>
-
-          {/* 9. SYSTEM NAME */}
-          <div
-            className="text-[10px] md:text-[11px] font-bold tracking-[1.2px] uppercase px-4"
-            style={{
-              color: '#c9a84c',
-              animation: 'fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
-              animationDelay: '550ms'
-            }}
-          >
-            AI-Powered Project Management & Document Intelligence System
+            {t('app.tagline')}
           </div>
         </div>
 
@@ -230,11 +196,11 @@ const IntroPage: React.FC = () => {
           className="flex items-center justify-center gap-[10px]"
           style={{
             animation: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
-            animationDelay: '700ms'
+            animationDelay: '600ms'
           }}
         >
           <div
-            className="h-[1px] animate-lineGrow"
+            className="h-[1px] w-[50px] animate-lineGrow"
             style={{ backgroundColor: '#c9a84c', opacity: 0.5 }}
           />
           <div
@@ -242,116 +208,114 @@ const IntroPage: React.FC = () => {
             style={{ backgroundColor: '#c9a84c' }}
           />
           <div
-            className="h-[1px] animate-lineGrow"
+            className="h-[1px] w-[50px] animate-lineGrow"
             style={{ backgroundColor: '#c9a84c', opacity: 0.5 }}
           />
         </div>
 
-        {/* 11. TAGLINE */}
+        {/* 11. TAGLINE / DESCRIPTION */}
         <p
-          className="text-[12px] leading-[1.7] max-w-[400px] px-2"
+          className="text-[12px] leading-[1.7] max-w-[520px] px-4"
           style={{
             color: '#666666',
             animation: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
-            animationDelay: '800ms'
+            animationDelay: '750ms'
           }}
         >
-          A centralized digital platform for document management, OCR-based data extraction, project tracking, and transparent reporting for the Jharkhand Energy Department.
+          {t('app.description')}
         </p>
 
-        {/* 12. STATS ROW */}
+        {/* 12. FEATURES ROW */}
         <div
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 w-full max-w-[480px] pt-2"
+          className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-[620px] pt-2 px-2"
           style={{
             animation: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
-            animationDelay: '950ms'
+            animationDelay: '900ms'
           }}
         >
-          {/* Stat 1 */}
+          {/* Card 1: OCR */}
           <div
-            className="rounded-lg py-2.5 px-4 min-w-[80px]"
+            className="group rounded-xl p-4 text-left transition-all duration-300 hover:shadow-md cursor-default border hover:-translate-y-1 relative overflow-hidden"
             style={{
-              backgroundColor: '#f7faf8',
-              border: '0.5px solid rgba(26, 92, 56, 0.2)',
-              borderTop: '2.5px solid #c9a84c'
+              backgroundColor: '#ffffff',
+              borderColor: 'rgba(26, 92, 56, 0.15)',
+              borderTop: '3px solid #1a5c38'
             }}
           >
-            <div className="text-xl md:text-[22px] font-medium" style={{ color: '#1a5c38' }}>
-              {docCount}+
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-[#eaf4ee] text-[#1a5c38] transition-colors duration-300 group-hover:bg-[#1a5c38] group-hover:text-white">
+                <FileText size={16} />
+              </div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-[#1a5c38]">
+                {t('intro.feat_ocr_title')}
+              </h3>
             </div>
-            <div className="text-[9px] uppercase tracking-[0.8px] font-semibold mt-0.5" style={{ color: '#888888' }}>
-              Documents
-            </div>
+            <p className="text-[11px] leading-relaxed text-[#666666]">
+              {t('intro.feat_ocr_desc')}
+            </p>
           </div>
 
-          {/* Stat 2 */}
+          {/* Card 2: Milestones */}
           <div
-            className="rounded-lg py-2.5 px-4 min-w-[80px]"
+            className="group rounded-xl p-4 text-left transition-all duration-300 hover:shadow-md cursor-default border hover:-translate-y-1 relative overflow-hidden"
             style={{
-              backgroundColor: '#f7faf8',
-              border: '0.5px solid rgba(26, 92, 56, 0.2)',
-              borderTop: '2.5px solid #c9a84c'
+              backgroundColor: '#ffffff',
+              borderColor: 'rgba(26, 92, 56, 0.15)',
+              borderTop: '3px solid #c9a84c'
             }}
           >
-            <div className="text-xl md:text-[22px] font-medium" style={{ color: '#1a5c38' }}>
-              {projectCount}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-[#f9f5ec] text-[#c9a84c] transition-colors duration-300 group-hover:bg-[#c9a84c] group-hover:text-white">
+                <BarChart3 size={16} />
+              </div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-[#1a5c38]">
+                {t('intro.feat_proj_title')}
+              </h3>
             </div>
-            <div className="text-[9px] uppercase tracking-[0.8px] font-semibold mt-0.5" style={{ color: '#888888' }}>
-              Projects
-            </div>
+            <p className="text-[11px] leading-relaxed text-[#666666]">
+              {t('intro.feat_proj_desc')}
+            </p>
           </div>
 
-          {/* Stat 3 */}
+          {/* Card 3: Secure Audit */}
           <div
-            className="rounded-lg py-2.5 px-4 min-w-[80px]"
+            className="group rounded-xl p-4 text-left transition-all duration-300 hover:shadow-md cursor-default border hover:-translate-y-1 relative overflow-hidden"
             style={{
-              backgroundColor: '#f7faf8',
-              border: '0.5px solid rgba(26, 92, 56, 0.2)',
-              borderTop: '2.5px solid #c9a84c'
+              backgroundColor: '#ffffff',
+              borderColor: 'rgba(26, 92, 56, 0.15)',
+              borderTop: '3px solid #1a5c38'
             }}
           >
-            <div className="text-xl md:text-[22px] font-medium" style={{ color: '#1a5c38' }}>
-              {deptCount}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-[#eaf4ee] text-[#1a5c38] transition-colors duration-300 group-hover:bg-[#1a5c38] group-hover:text-white">
+                <Lock size={16} />
+              </div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-[#1a5c38]">
+                {t('intro.feat_audit_title')}
+              </h3>
             </div>
-            <div className="text-[9px] uppercase tracking-[0.8px] font-semibold mt-0.5" style={{ color: '#888888' }}>
-              Departments
-            </div>
-          </div>
-
-          {/* Stat 4 */}
-          <div
-            className="rounded-lg py-2.5 px-4 min-w-[80px]"
-            style={{
-              backgroundColor: '#f7faf8',
-              border: '0.5px solid rgba(26, 92, 56, 0.2)',
-              borderTop: '2.5px solid #c9a84c'
-            }}
-          >
-            <div className="text-xl md:text-[22px] font-medium" style={{ color: '#1a5c38' }}>
-              {userCount}
-            </div>
-            <div className="text-[9px] uppercase tracking-[0.8px] font-semibold mt-0.5" style={{ color: '#888888' }}>
-              Users
-            </div>
+            <p className="text-[11px] leading-relaxed text-[#666666]">
+              {t('intro.feat_audit_desc')}
+            </p>
           </div>
         </div>
 
         {/* 13. BUTTON ROW */}
         <div
-          className="flex flex-row items-center gap-3.5 pt-2"
+          className="flex flex-row items-center justify-center gap-4 pt-3"
           style={{
             animation: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
-            animationDelay: '1100ms'
+            animationDelay: '1050ms'
           }}
         >
           {/* Button 1: Primary Login */}
           <button
             onClick={() => navigate('/login')}
-            className="flex items-center gap-1.5 rounded-lg py-2.5 px-6 font-medium text-[13px] shadow transition duration-200 cursor-pointer"
+            className="flex items-center gap-2 rounded-xl py-3 px-7 font-bold text-xs shadow-md transition duration-200 cursor-pointer uppercase tracking-wider hover:shadow-lg active:scale-95"
             style={{
               backgroundColor: '#1a5c38',
               color: '#ffffff',
-              borderBottom: '2.5px solid #c9a84c'
+              borderBottom: '3.5px solid #c9a84c'
             }}
             onMouseOver={(e) => {
               e.currentTarget.style.backgroundColor = '#145030';
@@ -360,14 +324,14 @@ const IntroPage: React.FC = () => {
               e.currentTarget.style.backgroundColor = '#1a5c38';
             }}
           >
-            <LogIn size={14} className="shrink-0" />
-            <span>Login to Portal</span>
+            <LogIn size={15} className="shrink-0" />
+            <span>{t('intro.login_btn')}</span>
           </button>
 
           {/* Button 2: Secondary About */}
           <button
             onClick={() => setShowInfo(true)}
-            className="flex items-center gap-1.5 rounded-lg py-2.5 px-5 font-medium text-[13px] border shadow-sm transition duration-200 cursor-pointer"
+            className="flex items-center gap-2 rounded-xl py-3 px-6 font-bold text-xs border shadow-sm transition duration-200 cursor-pointer uppercase tracking-wider hover:bg-emerald-50/20 active:scale-95"
             style={{
               backgroundColor: '#ffffff',
               color: '#1a5c38',
@@ -380,8 +344,8 @@ const IntroPage: React.FC = () => {
               e.currentTarget.style.backgroundColor = '#ffffff';
             }}
           >
-            <Info size={14} className="shrink-0" />
-            <span>About System</span>
+            <Info size={15} className="shrink-0" />
+            <span>{t('intro.about_btn')}</span>
           </button>
         </div>
 
@@ -390,46 +354,46 @@ const IntroPage: React.FC = () => {
           className="flex flex-wrap items-center justify-center gap-3 pt-2"
           style={{
             animation: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
-            animationDelay: '1200ms'
+            animationDelay: '1150ms'
           }}
         >
           {/* Badge 1 */}
           <div
-            className="flex items-center gap-1.5 rounded-full py-[3px] px-2.5 text-[9px] font-semibold border"
+            className="flex items-center gap-1.5 rounded-full py-1 px-3 text-[10px] font-bold border shadow-sm"
             style={{
-              color: '#2e7d52',
+              color: '#1a5c38',
               backgroundColor: '#eaf4ee',
-              borderColor: 'rgba(46, 125, 82, 0.3)'
+              borderColor: 'rgba(26, 92, 56, 0.25)'
             }}
           >
-            <ShieldCheck size={11} className="shrink-0" />
-            <span>Secure Access</span>
+            <ShieldCheck size={12} className="shrink-0 text-[#1a5c38]" />
+            <span>{t('intro.secure_access')}</span>
           </div>
 
           {/* Badge 2 */}
           <div
-            className="flex items-center gap-1.5 rounded-full py-[3px] px-2.5 text-[9px] font-semibold border"
+            className="flex items-center gap-1.5 rounded-full py-1 px-3 text-[10px] font-bold border shadow-sm"
             style={{
-              color: '#2e7d52',
+              color: '#1a5c38',
               backgroundColor: '#eaf4ee',
-              borderColor: 'rgba(46, 125, 82, 0.3)'
+              borderColor: 'rgba(26, 92, 56, 0.25)'
             }}
           >
-            <Lock size={11} className="shrink-0" />
-            <span>Role Based</span>
+            <Lock size={12} className="shrink-0 text-[#1a5c38]" />
+            <span>{t('intro.role_based')}</span>
           </div>
 
           {/* Badge 3 */}
           <div
-            className="flex items-center gap-1.5 rounded-full py-[3px] px-2.5 text-[9px] font-semibold border"
+            className="flex items-center gap-1.5 rounded-full py-1 px-3 text-[10px] font-bold border shadow-sm"
             style={{
-              color: '#2e7d52',
+              color: '#1a5c38',
               backgroundColor: '#eaf4ee',
-              borderColor: 'rgba(46, 125, 82, 0.3)'
+              borderColor: 'rgba(26, 92, 56, 0.25)'
             }}
           >
-            <Award size={11} className="shrink-0" />
-            <span>Government Verified</span>
+            <Award size={12} className="shrink-0 text-[#c9a84c]" />
+            <span>{t('intro.gov_verified')}</span>
           </div>
         </div>
 
@@ -437,22 +401,22 @@ const IntroPage: React.FC = () => {
 
       {/* 15. BOTTOM FOOTER STRIP */}
       <div
-        className="absolute bottom-[12px] flex items-center justify-center gap-1.5 text-[9px] tracking-[0.5px] pointer-events-none"
+        className="absolute bottom-[16px] flex items-center justify-center gap-1.5 text-[9px] tracking-[0.5px] pointer-events-none"
         style={{
           color: '#aaaaaa',
           animation: 'fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
-          animationDelay: '1300ms'
+          animationDelay: '1250ms'
         }}
       >
         <span
           className="w-[6px] h-[6px] rounded-full animate-pulseSlow shrink-0"
           style={{ backgroundColor: '#2e7d52' }}
         />
-        <span>System Online</span>
+        <span>{t('intro.system_online')}</span>
         <span style={{ color: '#c9a84c' }}>&middot;</span>
-        <span>Version 1.0.0</span>
+        <span>{t('intro.version')} 1.0.0</span>
         <span style={{ color: '#c9a84c' }}>&middot;</span>
-        <span>&copy; 2025 Jharkhand Energy Department</span>
+        <span>&copy; 2026 {t('app.department')}</span>
       </div>
 
       {/* 16. BOTTOM COLOR BAR */}
@@ -463,40 +427,40 @@ const IntroPage: React.FC = () => {
 
       {/* Interactive Info Modal */}
       {showInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-fadeUp">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden border" style={{ borderColor: 'rgba(26, 92, 56, 0.2)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeUp">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden border" style={{ borderColor: 'rgba(26, 92, 56, 0.25)' }}>
 
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b text-[#1a5c38]" style={{ borderColor: 'rgba(26, 92, 56, 0.1)', backgroundColor: '#f7faf8' }}>
               <div className="flex items-center gap-2">
                 <Info size={18} style={{ color: '#c9a84c' }} />
-                <span className="font-bold text-sm uppercase tracking-wider">About Jharkhand JBO System</span>
+                <span className="font-bold text-sm uppercase tracking-wider">{t('intro.about_title')}</span>
               </div>
               <button
                 onClick={() => setShowInfo(false)}
-                className="p-1 rounded-full text-[#1a5c38] hover:bg-slate-100 transition duration-150 cursor-pointer"
+                className="p-1.5 rounded-full text-[#1a5c38] hover:bg-slate-100 transition duration-150 cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 text-left text-xs leading-relaxed text-[#666666] space-y-3.5">
+            <div className="p-5 text-left text-xs leading-relaxed text-[#666666] space-y-4">
               <p>
-                The <strong>Jharkhand Bijli Vitran Nigam Limited (JBO)</strong> Document Intelligence & Project Management System is a state-of-the-art enterprise solution designed to streamline digital administration.
+                {t('intro.about_desc')}
               </p>
               <div className="space-y-2">
-                <h4 className="font-bold text-[#1a5c38] uppercase text-[10px] tracking-wider">Key Functional Areas</h4>
-                <ul className="list-disc list-inside pl-1 space-y-1">
-                  <li><strong>AI OCR Extraction</strong>: Automated text parsing of work orders and invoice credentials.</li>
-                  <li><strong>Project Milestones</strong>: Dynamic tracking of grid expansion works and physical progress.</li>
-                  <li><strong>Secure RBAC</strong>: Strict role-based control ensuring secure document verification.</li>
-                  <li><strong>Audit Trail logs</strong>: Detailed compliance monitoring and logging for full transparency.</li>
+                <h4 className="font-bold text-[#1a5c38] uppercase text-[10px] tracking-wider">{t('intro.key_functional_areas')}</h4>
+                <ul className="list-disc list-inside pl-1 space-y-2">
+                  <li>{t('intro.area_ocr')}</li>
+                  <li>{t('intro.area_milestones')}</li>
+                  <li>{t('intro.area_rbac')}</li>
+                  <li>{t('intro.area_audit')}</li>
                 </ul>
               </div>
               <p className="text-[10px] text-[#888888] border-t pt-3 flex justify-between">
-                <span>Developer: Energy Dept IT Wing</span>
-                <span>Security Protocol: AES-256</span>
+                <span>{t('intro.developer')}</span>
+                <span>{t('intro.security_protocol')}</span>
               </p>
             </div>
 
@@ -504,10 +468,10 @@ const IntroPage: React.FC = () => {
             <div className="flex justify-end px-5 py-3 border-t bg-[#f7faf8]" style={{ borderColor: 'rgba(26, 92, 56, 0.1)' }}>
               <button
                 onClick={() => setShowInfo(false)}
-                className="rounded-lg py-1.5 px-4 text-xs font-semibold text-white shadow-sm cursor-pointer"
+                className="rounded-lg py-2 px-4 text-xs font-semibold text-white shadow-sm cursor-pointer hover:bg-primary-dark transition duration-150"
                 style={{ backgroundColor: '#1a5c38' }}
               >
-                Close Spec
+                {t('intro.close_spec')}
               </button>
             </div>
 

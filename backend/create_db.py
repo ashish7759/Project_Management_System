@@ -2,10 +2,8 @@ import logging
 import urllib.parse
 from sqlalchemy import create_engine, text
 
-try:
-    from config import settings
-except ImportError:
-    from backend.config import settings
+from config import settings
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

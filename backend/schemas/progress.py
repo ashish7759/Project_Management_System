@@ -15,6 +15,7 @@ class MilestoneResponse(BaseModel):
     project_id: str
     target_date: date
     planned_progress: float
+    description: Optional[str] = None
     created_at: datetime
 
 

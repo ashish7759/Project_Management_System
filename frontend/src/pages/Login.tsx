@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,6 +16,86 @@ const Login: React.FC = () => {
   const { t } = useLanguage();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const DOT_SPACING = 28;
+    const DOT_RADIUS  = 1.8;
+    const DOT_COLOR   = '#1a5c38';
+    const ACCENT_COLOR= '#c9a84c';
+
+    // Dots array
+    type Dot = {
+      x: number;
+      y: number;
+      phase: number;
+      speed: number;
+      isAccent: boolean;
+    };
+
+    let dots: Dot[] = [];
+    let animFrameId: number;
+
+    const buildDots = () => {
+      dots = [];
+      const cols = Math.ceil(canvas.width  / DOT_SPACING) + 1;
+      const rows = Math.ceil(canvas.height / DOT_SPACING) + 1;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          dots.push({
+            x       : c * DOT_SPACING,
+            y       : r * DOT_SPACING,
+            phase   : Math.random() * Math.PI * 2,
+            speed   : 0.4 + Math.random() * 0.6,
+            isAccent: Math.random() < 0.06,
+          });
+        }
+      }
+    };
+
+    const resize = () => {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      buildDots();
+    };
+
+    const draw = (time: number) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      dots.forEach(dot => {
+        const t       = time * 0.001 * dot.speed + dot.phase;
+        const opacity = 0.06 + 0.28 * (0.5 + 0.5 * Math.sin(t));
+        const radius  = DOT_RADIUS * (0.85 + 0.3 * (0.5 + 0.5 * Math.sin(t)));
+
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = dot.isAccent
+          ? ACCENT_COLOR
+          : DOT_COLOR;
+        ctx.globalAlpha = opacity;
+        ctx.fill();
+      });
+
+      ctx.globalAlpha = 1;
+      animFrameId = requestAnimationFrame(draw);
+    };
+
+    resize();
+    window.addEventListener('resize', resize);
+    animFrameId = requestAnimationFrame(draw);
+
+    return () => {
+      cancelAnimationFrame(animFrameId);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
 
   const loginSchema = z.object({
     username: z.string().min(3, t('auth.username_min')),
@@ -54,6 +134,8 @@ const Login: React.FC = () => {
       console.error(err);
       if (err.response && err.response.data) {
         setErrorMsg(err.response.data.detail || err.response.data.message || t('auth.invalid_credentials'));
+      } else if (err.request) {
+        setErrorMsg(t('auth.server_error'));
       } else {
         setErrorMsg(t('auth.invalid_credentials'));
       }
@@ -63,7 +145,32 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative" style={{ backgroundColor: '#f7faf8' }}>
+    <div 
+      className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative overflow-hidden" 
+      style={{ 
+        backgroundColor: '#f7faf8',
+        minHeight: '100vh',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+      }}
+    >
+      {/* Dot Grid Canvas */}
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
       {/* Floating Language Toggle */}
       <div className="absolute top-4 right-4 z-50">
         <LanguageToggle />
@@ -78,14 +185,29 @@ const Login: React.FC = () => {
         .animate-boltFlash {
           animation: boltFlash 1.6s infinite ease-in-out;
         }
+        @keyframes dotPulse {
+          0%, 100% { opacity: 0.08; transform: scale(1); }
+          50%       { opacity: 0.35; transform: scale(1.3); }
+        }
+        .login-card {
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 4px 20px -2px rgba(26, 92, 56, 0.08), 0 2px 8px -1px rgba(26, 92, 56, 0.04);
+        }
+        .login-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 20px 40px -10px rgba(26, 92, 56, 0.14), 0 0 35px 4px rgba(201, 168, 76, 0.22);
+          border-color: rgba(201, 168, 76, 0.45) !important;
+        }
       `}} />
 
       <div 
-        className="w-full max-w-md space-y-6 rounded-xl border p-8 shadow-md relative"
+        className="w-full max-w-md space-y-6 rounded-xl border p-8 relative login-card"
         style={{
           backgroundColor: '#ffffff',
           borderTop: '4px solid #1a5c38',
-          borderColor: 'rgba(26, 92, 56, 0.15)'
+          borderColor: 'rgba(26, 92, 56, 0.15)',
+          position: 'relative',
+          zIndex: 1
         }}
       >
         {/* Logo/Emblem Area */}

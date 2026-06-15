@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from datetime import datetime, date
 
 
@@ -18,6 +18,7 @@ class AIExtractedFields(BaseModel):
     document_type: Optional[str] = None
     status: Optional[str] = None
     description: Optional[str] = None
+    actual_progress: Optional[float] = None
 
 
 class DocumentResponse(BaseModel):
@@ -37,6 +38,12 @@ class DocumentResponse(BaseModel):
     ai_extracted_json: Optional[str] = None
 
 
+class MilestoneVerification(BaseModel):
+    target_date: date
+    planned_progress: float
+    description: Optional[str] = None
+
+
 class DocumentVerifyRequest(BaseModel):
     project_name: str
     project_id: str
@@ -54,3 +61,7 @@ class DocumentVerifyRequest(BaseModel):
     notes: Optional[str] = None
     action: str = Field(..., description="Approve or Reject or SaveDraft")
     reject_reason: Optional[str] = None
+
+    actual_progress: Optional[float] = 0.0
+    custom_fields: Optional[List[Dict[str, Any]]] = None
+    milestones: Optional[List[MilestoneVerification]] = None

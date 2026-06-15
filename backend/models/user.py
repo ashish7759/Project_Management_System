@@ -1,10 +1,7 @@
 from sqlalchemy import Column, Integer, NVARCHAR, DateTime, ForeignKey, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-try:
-    from database import Base
-except ImportError:
-    from backend.database import Base
+from database import Base
 
 
 class User(Base):
@@ -25,3 +22,5 @@ class User(Base):
     updated_at = Column(DateTime, onupdate=func.now(), nullable=True)
 
     department = relationship("Department")
+    audit_logs = relationship("AuditLog", back_populates="user")
+

@@ -1,10 +1,8 @@
 from sqlalchemy import Column, Integer, NVARCHAR, DateTime, ForeignKey, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-try:
-    from database import Base
-except ImportError:
-    from backend.database import Base
+from database import Base
+
 
 
 class MasterDocument(Base):
@@ -27,3 +25,6 @@ class MasterDocument(Base):
 
     uploader = relationship("User", foreign_keys=[uploaded_by])
     approver = relationship("User", foreign_keys=[approved_by])
+
+Document = MasterDocument
+

@@ -6,18 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-try:
-    from database import get_db
-    from models.user import User
-    from models.audit import AuditLog
-    from schemas.audit import AuditLogResponse
-    from routers.auth import require_role
-except ImportError:
-    from backend.database import get_db
-    from backend.models.user import User
-    from backend.models.audit import AuditLog
-    from backend.schemas.audit import AuditLogResponse
-    from backend.routers.auth import require_role
+from database import get_db
+from models.user import User
+from models.audit import AuditLog
+from schemas.audit import AuditLogResponse
+from routers.auth import require_role
+
 
 router = APIRouter(prefix="/audit-logs", tags=["Audit Trail"])
 

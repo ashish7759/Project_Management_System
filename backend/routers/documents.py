@@ -5,34 +5,21 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks, status
 from sqlalchemy.orm import Session
 
-try:
-    from database import get_db
-    from config import settings
-    from models.user import User
-    from models.document import MasterDocument
-    from models.project import Project
-    from models.contractor import Contractor
-    from models.location import Location
-    from models.department import Department
-    from schemas.document import DocumentResponse, DocumentVerifyRequest
-    from routers.auth import get_current_user, require_role
-    from services.ocr_service import process_document_ocr
-    from services.ai_extraction_service import extract_project_metadata_ai
-    from services.audit_service import log_action
-except ImportError:
-    from backend.database import get_db
-    from backend.config import settings
-    from backend.models.user import User
-    from backend.models.document import MasterDocument
-    from backend.models.project import Project
-    from backend.models.contractor import Contractor
-    from backend.models.location import Location
-    from backend.models.department import Department
-    from backend.schemas.document import DocumentResponse, DocumentVerifyRequest
-    from backend.routers.auth import get_current_user, require_role
-    from backend.services.ocr_service import process_document_ocr
-    from backend.services.ai_extraction_service import extract_project_metadata_ai
-    from backend.services.audit_service import log_action
+from database import get_db
+from config import settings
+from models.user import User
+from models.document import MasterDocument
+from models.project import Project
+from models.contractor import Contractor
+from models.location import Location
+from models.department import Department
+from models.progress import Milestone, ProgressHistory
+from schemas.document import DocumentResponse, DocumentVerifyRequest
+from routers.auth import get_current_user, require_role
+from services.ocr_service import process_document_ocr
+from services.ai_extraction_service import extract_project_metadata_ai
+from services.audit_service import log_action
+
 
 router = APIRouter(prefix="/documents", tags=["Document Management"])
 
@@ -191,6 +178,64 @@ async def upload_document(
     return doc
 
 
+def get_structured_ai_json(raw_json_str: Optional[str]) -> str:
+    """
+    Ensure the returned ai_extracted_json is always in the new structured format:
+    {
+        "core_fields": { ... },
+        "custom_fields": [ ... ],
+        "milestones": [ ... ]
+    }
+    """
+    default_structure = {
+        "core_fields": {},
+        "custom_fields": [],
+        "milestones": []
+    }
+    if not raw_json_str:
+        return json.dumps(default_structure)
+    try:
+        data = json.loads(raw_json_str)
+    except:
+        return json.dumps(default_structure)
+
+    if isinstance(data, dict) and "core_fields" in data:
+        # Already in new format
+        return raw_json_str
+        
+    # Old format: flat key-value pairs
+    core_keys = [
+        "project_name", "project_id", "location", "district",
+        "contractor_name", "contractor_id", "work_order_number",
+        "budget_amount", "start_date", "end_date", "department",
+        "document_type", "status", "notes", "actual_progress"
+    ]
+    core_fields = {}
+    custom_fields = []
+    
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if k in core_keys:
+                core_fields[k] = v
+            elif k not in ["reject_reason", "custom_fields", "milestones"]:
+                # Convert to custom field format
+                label = k.replace("_", " ").title()
+                custom_fields.append({
+                    "key": k,
+                    "label": label,
+                    "value": v
+                })
+        
+        # Ensure actual_progress exists in core_fields
+        core_fields.setdefault("actual_progress", 0.0)
+            
+    return json.dumps({
+        "core_fields": core_fields,
+        "custom_fields": custom_fields,
+        "milestones": []
+    })
+
+
 @router.get("", response_model=List[DocumentResponse])
 def list_documents(
     search: Optional[str] = None,
@@ -211,7 +256,10 @@ def list_documents(
     if verification_status:
         query = query.filter(MasterDocument.verification_status == verification_status)
         
-    return query.order_by(MasterDocument.upload_date.desc()).all()
+    docs = query.order_by(MasterDocument.upload_date.desc()).all()
+    for doc in docs:
+        doc.ai_extracted_json = get_structured_ai_json(doc.ai_extracted_json)
+    return docs
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)
@@ -223,6 +271,7 @@ def get_document(
     doc = db.query(MasterDocument).filter(MasterDocument.document_id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+    doc.ai_extracted_json = get_structured_ai_json(doc.ai_extracted_json)
     return doc
 
 
@@ -248,20 +297,31 @@ def verify_document(
     if req.action == "SaveDraft":
         # Save edited metadata fields back to JSON string in master document
         draft_fields = {
-            "project_name": req.project_name,
-            "project_id": req.project_id,
-            "location": req.location,
-            "district": req.district,
-            "contractor_name": req.contractor_name,
-            "contractor_id": req.contractor_id,
-            "work_order_number": req.work_order_number,
-            "budget_amount": req.budget_amount,
-            "start_date": str(req.start_date),
-            "end_date": str(req.end_date),
-            "department": req.department,
-            "document_type": req.document_type,
-            "status": req.status,
-            "notes": req.notes
+            "core_fields": {
+                "project_name": req.project_name,
+                "project_id": req.project_id,
+                "location": req.location,
+                "district": req.district,
+                "contractor_name": req.contractor_name,
+                "contractor_id": req.contractor_id,
+                "work_order_number": req.work_order_number,
+                "budget_amount": req.budget_amount,
+                "start_date": str(req.start_date),
+                "end_date": str(req.end_date),
+                "department": req.department,
+                "document_type": req.document_type,
+                "status": req.status,
+                "notes": req.notes,
+                "actual_progress": req.actual_progress
+            },
+            "custom_fields": req.custom_fields or [],
+            "milestones": [
+                {
+                    "target_date": str(m.target_date),
+                    "planned_progress": m.planned_progress,
+                    "description": m.description
+                } for m in req.milestones
+            ] if req.milestones else []
         }
         doc.ai_extracted_json = json.dumps(draft_fields)
         db.commit()
@@ -313,6 +373,36 @@ def verify_document(
         doc.approved_by = current_user.user_id
         doc.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
+        # Save approved fields in json
+        approved_fields = {
+            "core_fields": {
+                "project_name": req.project_name,
+                "project_id": req.project_id,
+                "location": req.location,
+                "district": req.district,
+                "contractor_name": req.contractor_name,
+                "contractor_id": req.contractor_id,
+                "work_order_number": req.work_order_number,
+                "budget_amount": req.budget_amount,
+                "start_date": str(req.start_date),
+                "end_date": str(req.end_date),
+                "department": req.department,
+                "document_type": req.document_type,
+                "status": req.status,
+                "notes": req.notes,
+                "actual_progress": req.actual_progress
+            },
+            "custom_fields": req.custom_fields or [],
+            "milestones": [
+                {
+                    "target_date": str(m.target_date),
+                    "planned_progress": m.planned_progress,
+                    "description": m.description
+                } for m in req.milestones
+            ] if req.milestones else []
+        }
+        doc.ai_extracted_json = json.dumps(approved_fields)
+
         # Step 6: Populate / Update Child Tables
         
         # 1. Department Lookup / Insertion
@@ -336,8 +426,36 @@ def verify_document(
         project.start_date = req.start_date
         project.end_date = req.end_date
         project.budget_amount = req.budget_amount
-        project.status = req.status or "Pending"
         project.document_id = document_id
+        
+        # Update actual progress from verification if provided
+        from datetime import date
+        old_progress = project.actual_progress
+        if req.actual_progress is not None:
+            project.actual_progress = req.actual_progress
+            
+            # If actual progress changed, log it to progress history!
+            if old_progress != req.actual_progress:
+                history = ProgressHistory(
+                    project_id=req.project_id,
+                    updated_by=current_user.user_id,
+                    actual_progress=req.actual_progress,
+                    notes=f"Automatically updated progress to {req.actual_progress}% via verification of document '{doc.file_name}'."
+                )
+                db.add(history)
+                db.commit()
+
+        # Auto status transitions
+        today = date.today()
+        if project.actual_progress == 100.0:
+            project.status = "Completed"
+        elif project.end_date and today > project.end_date and project.actual_progress < 100.0:
+            project.status = "Delayed"
+        elif project.actual_progress > 0.0:
+            project.status = "In Progress"
+        else:
+            project.status = req.status or "Pending"
+            
         db.commit()
 
         # 3. Contractor Creation / Update
@@ -369,6 +487,24 @@ def verify_document(
                 db.add(loc)
                 db.commit()
 
+        # 5. Milestone Creation
+        if req.milestones is not None:
+            # Clear old milestones to prevent duplicates
+            db.query(Milestone).filter(Milestone.project_id == req.project_id).delete()
+            for m in req.milestones:
+                milestone = Milestone(
+                    project_id=req.project_id,
+                    target_date=m.target_date,
+                    planned_progress=m.planned_progress,
+                    description=m.description
+                )
+                db.add(milestone)
+            db.commit()
+
+            # Recalculate project planned progress immediately
+            from routers.progress import update_planned_progress_db
+            update_planned_progress_db(project, db)
+
         db.commit()
 
         log_action(
@@ -384,7 +520,7 @@ def verify_document(
             }
         )
 
-        return {"success": True, "message": "Document approved and project master records created."}
+        return {"success": True, "message": "Document approved, project master records and milestones created."}
 
     raise HTTPException(status_code=400, detail="Invalid action parameter. Must be Approve, Reject, or SaveDraft")
 
@@ -398,6 +534,14 @@ def delete_document(
     doc = db.query(MasterDocument).filter(MasterDocument.document_id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+
+    # Find and delete any projects created from/associated with this document
+    projects = db.query(Project).filter(Project.document_id == document_id).all()
+    for proj in projects:
+        # Delete related milestones and progress history to ensure clean cleanup
+        db.query(Milestone).filter(Milestone.project_id == proj.project_id).delete()
+        db.query(ProgressHistory).filter(ProgressHistory.project_id == proj.project_id).delete()
+        db.delete(proj)
 
     # Delete local file physically
     if os.path.exists(doc.original_file_path):

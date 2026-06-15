@@ -2,10 +2,8 @@ import json
 from typing import Optional, Any, Dict
 from sqlalchemy.orm import Session
 
-try:
-    from models.audit import AuditLog
-except ImportError:
-    from backend.models.audit import AuditLog
+from models.audit import AuditLog
+
 
 def log_action(
     db: Session,

@@ -100,7 +100,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
       {/* Brand Header */}
       <div 
         className={`flex h-14 items-center ${isOpen ? 'px-4' : 'justify-center px-0'}`}
-        style={{ backgroundColor: '#145030' }}
+        style={{ 
+          backgroundColor: '#145030',
+          borderBottom: '1px solid rgba(201, 168, 76, 0.15)'
+        }}
       >
         <div className="flex items-center space-x-3 overflow-hidden">
           <div 
@@ -110,11 +113,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
             JBO
           </div>
           {isOpen && (
-            <div className="flex flex-col">
-              <span className="text-xs font-bold tracking-wider text-white leading-tight font-outfit uppercase">
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-extrabold tracking-wide text-white leading-tight font-outfit uppercase truncate max-w-[160px]" title={t('app.name')}>
                 {t('app.name')}
               </span>
-              <span className="text-[8px] text-white/50 font-medium">
+              <span className="text-[8px] text-white/40 font-bold tracking-wider uppercase mt-0.5 truncate max-w-[160px]" title={t('app.department')}>
                 {t('app.department')}
               </span>
             </div>

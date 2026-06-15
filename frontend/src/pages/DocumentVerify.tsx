@@ -14,7 +14,12 @@ import {
   Unlock, 
   Loader2, 
   AlertCircle,
-  FileText
+  FileText,
+  Plus,
+  Trash2,
+  Calendar,
+  LayoutGrid,
+  CheckSquare
 } from 'lucide-react';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -27,12 +32,58 @@ const DocumentVerify: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language, getTranslatedDept } = useLanguage();
 
   const [document, setDocument] = useState<MasterDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [alert, setAlert] = useState<{ type: 'error' | 'success', text: string } | null>(null);
+
+  const [departments, setDepartments] = useState<string[]>([
+    'Engineering',
+    'Finance',
+    'Operations',
+    'HR',
+    'IT',
+    'Administration'
+  ]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get('/projects/departments');
+      const names = res.data.map((d: any) => d.department_name);
+      setDepartments(names);
+    } catch (e) {
+      console.warn("Failed to load departments list");
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    const handleDatabaseUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const changes = customEvent.detail?.changes || [];
+      const hasDeptChanges = changes.some((c: any) => c.table === 'department');
+      if (hasDeptChanges) {
+        console.log('[Realtime] Re-fetching department list due to DB updates.');
+        fetchDepartments();
+      }
+    };
+    window.addEventListener('database-update', handleDatabaseUpdate);
+    return () => window.removeEventListener('database-update', handleDatabaseUpdate);
+  }, []);
+
+  // Custom dynamic fields & milestones state
+  const [customFields, setCustomFields] = useState<Array<{ key: string, label: string, value: string }>>([]);
+  const [milestones, setMilestones] = useState<Array<{ target_date: string, planned_progress: number, description: string }>>([]);
+
+  // For adding a new custom field
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldValue, setNewFieldValue] = useState('');
+  const [showAddFieldForm, setShowAddFieldForm] = useState(false);
 
   // Reject modal state
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -57,23 +108,38 @@ const DocumentVerify: React.FC = () => {
         }
       }
 
+      let core = fields.core_fields || {};
+      let custom = fields.custom_fields || [];
+      let mileList = fields.milestones || [];
+
+      // Backward compatibility check
+      if (!fields.core_fields && Object.keys(fields).length > 0) {
+        core = fields;
+        custom = [];
+        mileList = [];
+      }
+
       // Populate form values
       reset({
-        project_name: fields.project_name || '',
-        project_id: fields.project_id || '',
-        location: fields.location || '',
-        district: fields.district || '',
-        contractor_name: fields.contractor_name || '',
-        contractor_id: fields.contractor_id || '',
-        work_order_number: fields.work_order_number || '',
-        budget_amount: fields.budget_amount || 0,
-        start_date: fields.start_date || '',
-        end_date: fields.end_date || '',
-        department: fields.department || (docData.ocr_status === 'Completed' ? 'Engineering' : ''),
-        document_type: fields.document_type || 'Work Order',
-        status: fields.status || 'Pending',
-        notes: fields.notes || '',
+        project_name: core.project_name || '',
+        project_id: core.project_id || '',
+        location: core.location || '',
+        district: core.district || '',
+        contractor_name: core.contractor_name || '',
+        contractor_id: core.contractor_id || '',
+        work_order_number: core.work_order_number || '',
+        budget_amount: core.budget_amount || 0,
+        start_date: core.start_date || '',
+        end_date: core.end_date || '',
+        department: core.department || (docData.ocr_status === 'Completed' ? 'Engineering' : ''),
+        document_type: core.document_type || 'Work Order',
+        status: core.status || 'Pending',
+        notes: core.notes || '',
+        actual_progress: core.actual_progress || 0,
       });
+
+      setCustomFields(custom);
+      setMilestones(mileList);
 
     } catch (err) {
       setAlert({ type: 'error', text: t('docs.verify.failed_retrieve') });
@@ -94,8 +160,11 @@ const DocumentVerify: React.FC = () => {
     const payload = {
       ...data,
       budget_amount: parseFloat(data.budget_amount) || 0.0,
+      actual_progress: parseFloat(data.actual_progress) || 0.0,
       action,
       reject_reason: action === 'Reject' ? rejectReason : undefined,
+      custom_fields: customFields,
+      milestones: milestones,
     };
 
     try {
@@ -121,6 +190,47 @@ const DocumentVerify: React.FC = () => {
       setSubmitLoading(false);
     }
   };
+
+  const handleCustomFieldChange = (index: number, val: string) => {
+    const updated = [...customFields];
+    updated[index].value = val;
+    setCustomFields(updated);
+  };
+
+  const handleRemoveCustomField = (index: number) => {
+    const updated = customFields.filter((_, idx) => idx !== index);
+    setCustomFields(updated);
+  };
+
+  const handleAddCustomField = () => {
+    if (!newFieldLabel.trim()) return;
+    const key = newFieldLabel.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    setCustomFields([...customFields, { key, label: newFieldLabel.trim(), value: newFieldValue }]);
+    setNewFieldLabel('');
+    setNewFieldValue('');
+    setShowAddFieldForm(false);
+  };
+
+  const handleMilestoneChange = (index: number, key: 'target_date' | 'planned_progress' | 'description', val: any) => {
+    const updated = [...milestones];
+    if (key === 'planned_progress') {
+      updated[index][key] = parseFloat(val) || 0;
+    } else {
+      updated[index][key] = val;
+    }
+    setMilestones(updated);
+  };
+
+  const handleRemoveMilestone = (index: number) => {
+    const updated = milestones.filter((_, idx) => idx !== index);
+    setMilestones(updated);
+  };
+
+  const handleAddMilestone = () => {
+    setMilestones([...milestones, { target_date: '', planned_progress: 0, description: '' }]);
+  };
+
+  const milestonesSum = milestones.reduce((sum, m) => sum + (m.planned_progress || 0), 0);
 
   const getDocumentViewerUrl = (path: string) => {
     const parts = path.replace(/\\/g, '/').split('/uploads/');
@@ -331,18 +441,30 @@ const DocumentVerify: React.FC = () => {
                 />
               </div>
 
+              {/* Actual Progress (%) */}
+              <div>
+                <Input
+                  type="number"
+                  step="any"
+                  min="0"
+                  max="100"
+                  label={language === 'hi' ? 'वास्तविक प्रगति (%)' : 'Actual Progress (%)'}
+                  disabled={isFormDisabled}
+                  {...register('actual_progress')}
+                />
+              </div>
+
               {/* Department */}
               <Select
                 label={t('common.department')}
                 disabled={isFormDisabled}
                 {...register('department')}
               >
-                <option value="Engineering">{t('dept.engineering')}</option>
-                <option value="Finance">{t('dept.finance')}</option>
-                <option value="Operations">{t('dept.operations')}</option>
-                <option value="HR">{t('dept.hr')}</option>
-                <option value="IT">{t('dept.it')}</option>
-                <option value="Administration">{t('dept.administration')}</option>
+                {departments.map(d => (
+                  <option key={d} value={d}>
+                    {getTranslatedDept(d)}
+                  </option>
+                ))}
               </Select>
 
               {/* Start Date */}
@@ -401,6 +523,224 @@ const DocumentVerify: React.FC = () => {
                   className="w-full bg-white border border-primary/25 rounded-lg py-[0.6rem] px-[0.9rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
                   placeholder="Verification observations..."
                 />
+              </div>
+
+              {/* Dynamic Custom Fields Section */}
+              <div className="sm:col-span-2 border-t border-primary/10 pt-5 mt-3 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <LayoutGrid className="h-4 w-4 text-primary" />
+                    <h4 className="text-[13px] font-bold text-primary uppercase tracking-wide">
+                      {language === 'hi' ? 'अतिरिक्त निकाले गए फ़ील्ड' : 'Additional Extracted Fields'}
+                    </h4>
+                  </div>
+                  {!isFormDisabled && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="!py-1 !px-2.5 !text-xs flex items-center space-x-1"
+                      onClick={() => setShowAddFieldForm(true)}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>{language === 'hi' ? 'नया फ़ील्ड जोड़ें' : 'Add Custom Field'}</span>
+                    </Button>
+                  )}
+                </div>
+
+                {/* Form to add a new custom field */}
+                {showAddFieldForm && (
+                  <div className="bg-primary-bg p-3.5 rounded-lg border border-primary/15 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-primary uppercase select-none">{language === 'hi' ? 'फ़ील्ड का नाम' : 'Field Label'}</label>
+                        <input
+                          type="text"
+                          value={newFieldLabel}
+                          onChange={(e) => setNewFieldLabel(e.target.value)}
+                          placeholder="e.g. Substation Name"
+                          className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-primary uppercase select-none">{language === 'hi' ? 'फ़ील्ड का मान' : 'Field Value'}</label>
+                        <input
+                          type="text"
+                          value={newFieldValue}
+                          onChange={(e) => setNewFieldValue(e.target.value)}
+                          placeholder="e.g. Dhurwa Substation"
+                          className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="!py-1 !px-3 !text-xs"
+                        onClick={() => { setShowAddFieldForm(false); setNewFieldLabel(''); setNewFieldValue(''); }}
+                      >
+                        {t('common.cancel')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        className="!py-1 !px-3 !text-xs"
+                        onClick={handleAddCustomField}
+                        disabled={!newFieldLabel.trim()}
+                      >
+                        {language === 'hi' ? 'जोड़ें' : 'Add'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {customFields.length === 0 ? (
+                  <p className="text-xs text-text-hint select-none pl-1 italic">
+                    {language === 'hi' ? 'इस फ़ाइल के लिए कोई अतिरिक्त फ़ील्ड नहीं निकाला गया।' : 'No additional custom fields extracted for this file.'}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 bg-primary-bg/30 p-3 rounded-lg border border-primary/5">
+                    {customFields.map((field, index) => (
+                      <div key={field.key} className="flex items-end space-x-2 relative group">
+                        <div className="flex-1">
+                          <label className="text-[12px] font-medium text-primary mb-1 select-none block truncate" title={field.label}>
+                            {field.label}
+                          </label>
+                          <input
+                            type="text"
+                            value={field.value}
+                            disabled={isFormDisabled}
+                            onChange={(e) => handleCustomFieldChange(index, e.target.value)}
+                            className="w-full bg-white border border-primary/25 rounded-lg py-[0.55rem] px-[0.8rem] text-[13px] text-text-body focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
+                          />
+                        </div>
+                        {!isFormDisabled && (
+                          <button
+                            type="button"
+                            className="p-2.5 text-text-hint hover:text-danger rounded-lg bg-white border border-primary/15 hover:border-danger/30 transition shadow-sm mb-0.5"
+                            onClick={() => handleRemoveCustomField(index)}
+                            title="Remove Field"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Milestones Section */}
+              <div className="sm:col-span-2 border-t border-primary/10 pt-5 mt-3 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <CheckSquare className="h-4 w-4 text-primary" />
+                    <h4 className="text-[13px] font-bold text-primary uppercase tracking-wide">
+                      {language === 'hi' ? 'परियोजना मील के पत्थर' : 'Project Milestones'}
+                    </h4>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                      milestonesSum === 100 
+                        ? 'bg-primary-bg2 border-primary/20 text-primary' 
+                        : 'bg-danger-bg border-danger/25 text-danger'
+                    }`}>
+                      {language === 'hi' ? 'कुल प्रगति' : 'Total Progress'}: {milestonesSum}%
+                    </span>
+                  </div>
+                  {!isFormDisabled && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="!py-1 !px-2.5 !text-xs flex items-center space-x-1"
+                      onClick={handleAddMilestone}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>{language === 'hi' ? 'मील का पत्थर जोड़ें' : 'Add Milestone'}</span>
+                    </Button>
+                  )}
+                </div>
+
+                {milestones.length === 0 ? (
+                  <p className="text-xs text-text-hint select-none pl-1 italic">
+                    {language === 'hi' ? 'इस फ़ाइल से कोई मील का पत्थर नहीं मिला।' : 'No milestones detected from this file.'}
+                  </p>
+                ) : (
+                  <div className="space-y-3 bg-primary-bg/30 p-3 rounded-lg border border-primary/5">
+                    {milestones.map((m, index) => (
+                      <div key={index} className="flex flex-col sm:flex-row gap-3 bg-white p-3 rounded-lg border border-primary/10 shadow-sm relative group">
+                        
+                        {/* Milestone Description */}
+                        <div className="flex-1">
+                          <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block">
+                            {language === 'hi' ? 'विवरण' : 'Description'}
+                          </label>
+                          <input
+                            type="text"
+                            value={m.description}
+                            placeholder="e.g. Foundations & Cable laying"
+                            disabled={isFormDisabled}
+                            onChange={(e) => handleMilestoneChange(index, 'description', e.target.value)}
+                            className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                          />
+                        </div>
+
+                        {/* Milestone Date */}
+                        <div className="w-full sm:w-40">
+                          <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block">
+                            {language === 'hi' ? 'लक्ष्य तिथि' : 'Target Date'}
+                          </label>
+                          <input
+                            type="date"
+                            value={m.target_date}
+                            disabled={isFormDisabled}
+                            onChange={(e) => handleMilestoneChange(index, 'target_date', e.target.value)}
+                            className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                          />
+                        </div>
+
+                        {/* Progress % */}
+                        <div className="w-full sm:w-28 flex items-end space-x-2">
+                          <div className="flex-1">
+                            <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block truncate">
+                              {language === 'hi' ? 'प्रगति %' : 'Progress %'}
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={m.planned_progress}
+                              disabled={isFormDisabled}
+                              onChange={(e) => handleMilestoneChange(index, 'planned_progress', e.target.value)}
+                              className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                          {!isFormDisabled && (
+                            <button
+                              type="button"
+                              className="p-2 text-text-hint hover:text-danger rounded bg-primary-bg border border-primary/10 hover:border-danger/30 transition shadow-sm mb-0.5"
+                              onClick={() => handleRemoveMilestone(index)}
+                              title="Remove Milestone"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {milestonesSum !== 100 && milestones.length > 0 && (
+                  <p className="text-[11px] text-danger bg-danger-bg/50 border border-danger/15 rounded p-2 flex items-center">
+                    <AlertCircle className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                    <span>
+                      {language === 'hi' 
+                        ? 'चेतावनी: मील के पत्थर की संचयी प्रगति का योग 100% होना चाहिए (वर्तमान में ' + milestonesSum + '% है)' 
+                        : 'Warning: Combined milestone progress should ideally equal 100% (currently ' + milestonesSum + '%)'
+                      }
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 

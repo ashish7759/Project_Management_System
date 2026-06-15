@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,7 +9,7 @@ import Button from '../components/ui/Button';
 
 const DocumentUpload: React.FC = () => {
   const navigate = useNavigate();
-  const { t, language } = useLanguage();
+  const { t, language, getTranslatedDept } = useLanguage();
 
   // File states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -35,14 +35,42 @@ const DocumentUpload: React.FC = () => {
     'Other'
   ];
 
-  const departments = [
+  const [departments, setDepartments] = useState<string[]>([
     'Engineering',
     'Finance',
     'Operations',
     'HR',
     'IT',
     'Administration'
-  ];
+  ]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get('/projects/departments');
+      const names = res.data.map((d: any) => d.department_name);
+      setDepartments(names);
+    } catch (e) {
+      console.warn("Failed to load departments list");
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    const handleDatabaseUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const changes = customEvent.detail?.changes || [];
+      const hasDeptChanges = changes.some((c: any) => c.table === 'department');
+      if (hasDeptChanges) {
+        console.log('[Realtime] Re-fetching department list due to DB updates.');
+        fetchDepartments();
+      }
+    };
+    window.addEventListener('database-update', handleDatabaseUpdate);
+    return () => window.removeEventListener('database-update', handleDatabaseUpdate);
+  }, []);
 
   const getTranslatedDocType = (type: string) => {
     switch (type) {
@@ -55,11 +83,6 @@ const DocumentUpload: React.FC = () => {
     }
   };
 
-  const getTranslatedDept = (deptName: string) => {
-    const key = `dept.${deptName.toLowerCase()}`;
-    const trans = t(key);
-    return trans === key ? deptName : trans;
-  };
 
   // Drag and Drop handlers
   const handleDrag = (e: React.DragEvent) => {

@@ -1,10 +1,8 @@
 from sqlalchemy import Column, NVARCHAR, DateTime, ForeignKey, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-try:
-    from database import Base
-except ImportError:
-    from backend.database import Base
+from database import Base
+
 
 
 class Contractor(Base):

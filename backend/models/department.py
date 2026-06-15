@@ -1,9 +1,7 @@
 from sqlalchemy import Column, Integer, NVARCHAR, DateTime, text
 from sqlalchemy.sql import func
-try:
-    from database import Base
-except ImportError:
-    from backend.database import Base
+from database import Base
+
 
 
 class Department(Base):

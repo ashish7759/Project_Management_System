@@ -6,22 +6,14 @@ from jose import jwt, JWTError
 import bcrypt
 from sqlalchemy.orm import Session
 
-try:
-    from database import get_db
-    from config import settings
-    from models.user import User
-    from models.department import Department
-    from schemas.auth import RegisterRequest, LoginRequest, TokenResponse
-    from schemas.user import UserResponse
-    from services.audit_service import log_action
-except ImportError:
-    from backend.database import get_db
-    from backend.config import settings
-    from backend.models.user import User
-    from backend.models.department import Department
-    from backend.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
-    from backend.schemas.user import UserResponse
-    from backend.services.audit_service import log_action
+from database import get_db
+from config import settings
+from models.user import User
+from models.department import Department
+from schemas.auth import RegisterRequest, LoginRequest, TokenResponse
+from schemas.user import UserResponse
+from services.audit_service import log_action
+
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

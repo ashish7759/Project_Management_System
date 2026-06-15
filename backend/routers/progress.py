@@ -4,22 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-try:
-    from database import get_db
-    from models.user import User
-    from models.project import Project
-    from models.progress import ProgressHistory, Milestone
-    from schemas.progress import MilestoneCreate, MilestoneResponse, ProgressUpdate, ProgressHistoryResponse
-    from routers.auth import get_current_user, require_role
-    from services.audit_service import log_action
-except ImportError:
-    from backend.database import get_db
-    from backend.models.user import User
-    from backend.models.project import Project
-    from backend.models.progress import ProgressHistory, Milestone
-    from backend.schemas.progress import MilestoneCreate, MilestoneResponse, ProgressUpdate, ProgressHistoryResponse
-    from backend.routers.auth import get_current_user, require_role
-    from backend.services.audit_service import log_action
+from database import get_db
+from models.user import User
+from models.project import Project
+from models.progress import ProgressHistory, Milestone
+from schemas.progress import MilestoneCreate, MilestoneResponse, ProgressUpdate, ProgressHistoryResponse
+from routers.auth import get_current_user, require_role
+from services.audit_service import log_action
+
 
 router = APIRouter(prefix="/progress", tags=["Progress Tracking"])
 
@@ -86,6 +78,17 @@ def list_progress_overview(
         
         last_updated = last_history.updated_at if last_history else proj.created_at
 
+        # Get milestones for this project
+        milestones = db.query(Milestone).filter(Milestone.project_id == proj.project_id).order_by(Milestone.target_date.asc()).all()
+        milestones_data = [
+            {
+                "milestone_id": m.milestone_id,
+                "target_date": str(m.target_date),
+                "planned_progress": float(m.planned_progress),
+                "description": m.description
+            } for m in milestones
+        ]
+
         overview.append({
             "project_id": proj.project_id,
             "project_name": proj.project_name,
@@ -94,7 +97,8 @@ def list_progress_overview(
             "actual_progress": float(proj.actual_progress),
             "variance": variance,
             "status": proj.status,
-            "last_updated": last_updated
+            "last_updated": last_updated,
+            "milestones": milestones_data
         })
 
     return overview
