@@ -48,6 +48,7 @@ class ProjectResponse(BaseModel):
     document_id: Optional[int] = None
     created_at: datetime
     department: Optional[DepartmentMiniResponse] = None
+    work_order_number: Optional[str] = None
 
 
 class ProjectCreate(BaseModel):

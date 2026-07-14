@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, LogIn, Info, ShieldCheck, Lock, Award, X, FileText, BarChart3 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import LanguageToggle from '../components/ui/LanguageToggle';
 
 const IntroPage: React.FC = () => {
   const navigate = useNavigate();
   const [showInfo, setShowInfo] = useState(false);
   const { t } = useLanguage();
+  const { isDark } = useTheme();
 
   // Set flag indicating that the user has visited the intro page
   useEffect(() => {
@@ -15,7 +17,13 @@ const IntroPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative w-screen h-screen flex flex-col items-center justify-center bg-white overflow-hidden select-none">
+    <div 
+      className="relative w-screen h-screen flex flex-col items-center justify-center overflow-hidden select-none"
+      style={{
+        background: isDark ? '#0f1a13' : '#ffffff',
+        border: isDark ? '0.5px solid rgba(46,125,82,0.2)' : '0.5px solid #e0e0e0',
+      }}
+    >
       {/* CSS Animations */}
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -73,36 +81,38 @@ const IntroPage: React.FC = () => {
       <div
         className="fixed top-0 left-0 right-0 h-[6px] z-50"
         style={{
-          background: 'linear-gradient(to right, #1a5c38, #2e7d52, #c9a84c, #2e7d52, #1a5c38)'
+          background: isDark 
+            ? 'linear-gradient(to right, #2e7d52, #4a9e6e, #d4a847, #4a9e6e, #2e7d52)'
+            : 'linear-gradient(to right, #1a5c38, #2e7d52, #c9a84c, #2e7d52, #1a5c38)'
         }}
       />
 
       {/* 2. SIDE ACCENTS */}
       <div
         className="fixed top-0 bottom-0 left-0 w-[4px] z-50"
-        style={{ backgroundColor: '#1a5c38' }}
+        style={{ backgroundColor: isDark ? '#2e7d52' : '#1a5c38' }}
       />
       <div
         className="fixed top-0 bottom-0 right-0 w-[4px] z-50"
-        style={{ backgroundColor: '#1a5c38' }}
+        style={{ backgroundColor: isDark ? '#2e7d52' : '#1a5c38' }}
       />
 
       {/* 3. CORNER ORNAMENTS */}
       <div
         className="absolute top-[14px] left-[14px] w-[28px] h-[28px] border-t-2 border-l-2 opacity-50 pointer-events-none"
-        style={{ borderColor: '#c9a84c' }}
+        style={{ borderColor: isDark ? '#d4a847' : '#c9a84c' }}
       />
       <div
         className="absolute top-[14px] right-[14px] w-[28px] h-[28px] border-t-2 border-r-2 opacity-50 pointer-events-none"
-        style={{ borderColor: '#c9a84c' }}
+        style={{ borderColor: isDark ? '#d4a847' : '#c9a84c' }}
       />
       <div
         className="absolute bottom-[14px] left-[14px] w-[28px] h-[28px] border-b-2 border-l-2 opacity-50 pointer-events-none"
-        style={{ borderColor: '#c9a84c' }}
+        style={{ borderColor: isDark ? '#d4a847' : '#c9a84c' }}
       />
       <div
         className="absolute bottom-[14px] right-[14px] w-[28px] h-[28px] border-b-2 border-r-2 opacity-50 pointer-events-none"
-        style={{ borderColor: '#c9a84c' }}
+        style={{ borderColor: isDark ? '#d4a847' : '#c9a84c' }}
       />
 
       {/* 4. BACKGROUND GRID PATTERN */}
@@ -111,13 +121,11 @@ const IntroPage: React.FC = () => {
         style={{
           backgroundSize: '36px 36px',
           backgroundImage: `
-            linear-gradient(to right, rgba(26, 92, 86, 0.04) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(26, 92, 86, 0.04) 1px, transparent 1px)
+            linear-gradient(to right, rgba(46, 125, 82, ${isDark ? 0.08 : 0.04}) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(46, 125, 82, ${isDark ? 0.08 : 0.04}) 1px, transparent 1px)
           `
         }}
       />
-
-
 
       {/* Center Layout Panel */}
       <div className="flex flex-col items-center justify-center text-center px-4 md:px-0 max-w-[680px] w-full mx-auto space-y-6 md:space-y-7 z-10">
@@ -131,22 +139,22 @@ const IntroPage: React.FC = () => {
           }}
         >
           {/* Rotating outer ring */}
-          <div className="absolute inset-0 rounded-full border-[1.5px] rotate-slow" style={{ borderColor: '#c9a84c' }}>
+          <div className="absolute inset-0 rounded-full border-[1.5px] rotate-slow" style={{ borderColor: isDark ? '#d4a847' : '#c9a84c' }}>
             {/* 4 golden dots */}
-            <div className="absolute -top-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-            <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-            <div className="absolute -left-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-            <div className="absolute -right-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+            <div className="absolute -top-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }} />
+            <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }} />
+            <div className="absolute -left-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }} />
+            <div className="absolute -right-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }} />
           </div>
 
           {/* Inner circle */}
           <div
             className="w-[72px] h-[72px] rounded-full flex items-center justify-center shadow z-10 transition-transform duration-300 hover:scale-105"
-            style={{ backgroundColor: '#1a5c38' }}
+            style={{ backgroundColor: isDark ? '#2e7d52' : '#1a5c38' }}
           >
             <Zap
               size={32}
-              style={{ color: '#c9a84c' }}
+              style={{ color: isDark ? '#d4a847' : '#c9a84c' }}
               className="animate-boltFlash"
             />
           </div>
@@ -158,7 +166,7 @@ const IntroPage: React.FC = () => {
           <div
             className="text-[10px] md:text-[11px] font-semibold tracking-[2.5px] uppercase"
             style={{
-              color: '#888888',
+              color: isDark ? '#5a7a62' : '#888888',
               animation: 'fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
               animationDelay: '200ms'
             }}
@@ -170,7 +178,7 @@ const IntroPage: React.FC = () => {
           <h1
             className="text-3xl md:text-4xl font-extrabold tracking-tight py-1"
             style={{
-              color: '#1a5c38',
+              color: isDark ? '#c9e8d4' : '#1a5c38',
               animation: 'fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
               animationDelay: '350ms'
             }}
@@ -182,7 +190,7 @@ const IntroPage: React.FC = () => {
           <div
             className="text-[11px] md:text-[12px] font-bold tracking-[1.5px] uppercase px-4"
             style={{
-              color: '#c9a84c',
+              color: isDark ? '#d4a847' : '#c9a84c',
               animation: 'fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
               animationDelay: '450ms'
             }}
@@ -201,15 +209,15 @@ const IntroPage: React.FC = () => {
         >
           <div
             className="h-[1px] w-[50px] animate-lineGrow"
-            style={{ backgroundColor: '#c9a84c', opacity: 0.5 }}
+            style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c', opacity: 0.5 }}
           />
           <div
             className="w-[7px] h-[7px] rotate-45 shrink-0"
-            style={{ backgroundColor: '#c9a84c' }}
+            style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }}
           />
           <div
             className="h-[1px] w-[50px] animate-lineGrow"
-            style={{ backgroundColor: '#c9a84c', opacity: 0.5 }}
+            style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c', opacity: 0.5 }}
           />
         </div>
 
@@ -217,7 +225,7 @@ const IntroPage: React.FC = () => {
         <p
           className="text-[12px] leading-[1.7] max-w-[520px] px-4"
           style={{
-            color: '#666666',
+            color: isDark ? '#9ab5a0' : '#666666',
             animation: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
             animationDelay: '750ms'
           }}
@@ -237,20 +245,26 @@ const IntroPage: React.FC = () => {
           <div
             className="group rounded-xl p-4 text-left transition-all duration-300 hover:shadow-md cursor-default border hover:-translate-y-1 relative overflow-hidden"
             style={{
-              backgroundColor: '#ffffff',
-              borderColor: 'rgba(26, 92, 56, 0.15)',
-              borderTop: '3px solid #1a5c38'
+              backgroundColor: isDark ? '#1a2b1f' : '#ffffff',
+              borderColor: isDark ? 'rgba(46, 125, 82, 0.3)' : 'rgba(26, 92, 56, 0.15)',
+              borderTop: isDark ? '2.5px solid #2e7d52' : '3px solid #1a5c38'
             }}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-[#eaf4ee] text-[#1a5c38] transition-colors duration-300 group-hover:bg-[#1a5c38] group-hover:text-white">
+              <div 
+                className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors duration-300 group-hover:bg-[#1a5c38] group-hover:text-white"
+                style={{
+                  backgroundColor: isDark ? 'rgba(46, 125, 82, 0.15)' : '#eaf4ee',
+                  color: isDark ? '#6ed9a0' : '#1a5c38'
+                }}
+              >
                 <FileText size={16} />
               </div>
-              <h3 className="font-bold text-xs uppercase tracking-wider text-[#1a5c38]">
+              <h3 className="font-bold text-xs uppercase tracking-wider" style={{ color: isDark ? '#6ed9a0' : '#1a5c38' }}>
                 {t('intro.feat_ocr_title')}
               </h3>
             </div>
-            <p className="text-[11px] leading-relaxed text-[#666666]">
+            <p className="text-[11px] leading-relaxed" style={{ color: isDark ? '#9ab5a0' : '#666666' }}>
               {t('intro.feat_ocr_desc')}
             </p>
           </div>
@@ -259,20 +273,26 @@ const IntroPage: React.FC = () => {
           <div
             className="group rounded-xl p-4 text-left transition-all duration-300 hover:shadow-md cursor-default border hover:-translate-y-1 relative overflow-hidden"
             style={{
-              backgroundColor: '#ffffff',
-              borderColor: 'rgba(26, 92, 56, 0.15)',
-              borderTop: '3px solid #c9a84c'
+              backgroundColor: isDark ? '#1a2b1f' : '#ffffff',
+              borderColor: isDark ? 'rgba(46, 125, 82, 0.3)' : 'rgba(26, 92, 56, 0.15)',
+              borderTop: isDark ? '2.5px solid #d4a847' : '3px solid #c9a84c'
             }}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-[#f9f5ec] text-[#c9a84c] transition-colors duration-300 group-hover:bg-[#c9a84c] group-hover:text-white">
+              <div 
+                className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors duration-300 group-hover:bg-[#c9a84c] group-hover:text-white"
+                style={{
+                  backgroundColor: isDark ? 'rgba(201, 168, 76, 0.15)' : '#f9f5ec',
+                  color: isDark ? '#d4a847' : '#c9a84c'
+                }}
+              >
                 <BarChart3 size={16} />
               </div>
-              <h3 className="font-bold text-xs uppercase tracking-wider text-[#1a5c38]">
+              <h3 className="font-bold text-xs uppercase tracking-wider" style={{ color: isDark ? '#6ed9a0' : '#1a5c38' }}>
                 {t('intro.feat_proj_title')}
               </h3>
             </div>
-            <p className="text-[11px] leading-relaxed text-[#666666]">
+            <p className="text-[11px] leading-relaxed" style={{ color: isDark ? '#9ab5a0' : '#666666' }}>
               {t('intro.feat_proj_desc')}
             </p>
           </div>
@@ -281,20 +301,26 @@ const IntroPage: React.FC = () => {
           <div
             className="group rounded-xl p-4 text-left transition-all duration-300 hover:shadow-md cursor-default border hover:-translate-y-1 relative overflow-hidden"
             style={{
-              backgroundColor: '#ffffff',
-              borderColor: 'rgba(26, 92, 56, 0.15)',
-              borderTop: '3px solid #1a5c38'
+              backgroundColor: isDark ? '#1a2b1f' : '#ffffff',
+              borderColor: isDark ? 'rgba(46, 125, 82, 0.3)' : 'rgba(26, 92, 56, 0.15)',
+              borderTop: isDark ? '2.5px solid #2e7d52' : '3px solid #1a5c38'
             }}
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-[#eaf4ee] text-[#1a5c38] transition-colors duration-300 group-hover:bg-[#1a5c38] group-hover:text-white">
+              <div 
+                className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors duration-300 group-hover:bg-[#1a5c38] group-hover:text-white"
+                style={{
+                  backgroundColor: isDark ? 'rgba(46, 125, 82, 0.15)' : '#eaf4ee',
+                  color: isDark ? '#6ed9a0' : '#1a5c38'
+                }}
+              >
                 <Lock size={16} />
               </div>
-              <h3 className="font-bold text-xs uppercase tracking-wider text-[#1a5c38]">
+              <h3 className="font-bold text-xs uppercase tracking-wider" style={{ color: isDark ? '#6ed9a0' : '#1a5c38' }}>
                 {t('intro.feat_audit_title')}
               </h3>
             </div>
-            <p className="text-[11px] leading-relaxed text-[#666666]">
+            <p className="text-[11px] leading-relaxed" style={{ color: isDark ? '#9ab5a0' : '#666666' }}>
               {t('intro.feat_audit_desc')}
             </p>
           </div>
@@ -315,7 +341,7 @@ const IntroPage: React.FC = () => {
             style={{
               backgroundColor: '#1a5c38',
               color: '#ffffff',
-              borderBottom: '3.5px solid #c9a84c'
+              borderBottom: isDark ? '3.5px solid #d4a847' : '3.5px solid #c9a84c'
             }}
             onMouseOver={(e) => {
               e.currentTarget.style.backgroundColor = '#145030';
@@ -331,17 +357,17 @@ const IntroPage: React.FC = () => {
           {/* Button 2: Secondary About */}
           <button
             onClick={() => setShowInfo(true)}
-            className="flex items-center gap-2 rounded-xl py-3 px-6 font-bold text-xs border shadow-sm transition duration-200 cursor-pointer uppercase tracking-wider hover:bg-emerald-50/20 active:scale-95"
+            className="flex items-center gap-2 rounded-xl py-3 px-6 font-bold text-xs border shadow-sm transition duration-200 cursor-pointer uppercase tracking-wider active:scale-95"
             style={{
-              backgroundColor: '#ffffff',
-              color: '#1a5c38',
-              borderColor: 'rgba(26, 92, 56, 0.3)'
+              backgroundColor: isDark ? '#1a2b1f' : '#ffffff',
+              color: isDark ? '#6ed9a0' : '#1a5c38',
+              borderColor: isDark ? 'rgba(46, 125, 82, 0.3)' : 'rgba(26, 92, 56, 0.3)'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f7f3';
+              e.currentTarget.style.backgroundColor = isDark ? '#2a3d2f' : '#f0f7f3';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.backgroundColor = isDark ? '#1a2b1f' : '#ffffff';
             }}
           >
             <Info size={15} className="shrink-0" />
@@ -361,12 +387,12 @@ const IntroPage: React.FC = () => {
           <div
             className="flex items-center gap-1.5 rounded-full py-1 px-3 text-[10px] font-bold border shadow-sm"
             style={{
-              color: '#1a5c38',
-              backgroundColor: '#eaf4ee',
-              borderColor: 'rgba(26, 92, 56, 0.25)'
+              color: isDark ? '#6ed9a0' : '#1a5c38',
+              backgroundColor: isDark ? 'rgba(26, 92, 56, 0.3)' : '#eaf4ee',
+              borderColor: isDark ? 'rgba(46, 125, 82, 0.25)' : 'rgba(26, 92, 56, 0.25)'
             }}
           >
-            <ShieldCheck size={12} className="shrink-0 text-[#1a5c38]" />
+            <ShieldCheck size={12} className="shrink-0" style={{ color: isDark ? '#6ed9a0' : '#1a5c38' }} />
             <span>{t('intro.secure_access')}</span>
           </div>
 
@@ -374,12 +400,12 @@ const IntroPage: React.FC = () => {
           <div
             className="flex items-center gap-1.5 rounded-full py-1 px-3 text-[10px] font-bold border shadow-sm"
             style={{
-              color: '#1a5c38',
-              backgroundColor: '#eaf4ee',
-              borderColor: 'rgba(26, 92, 56, 0.25)'
+              color: isDark ? '#6ed9a0' : '#1a5c38',
+              backgroundColor: isDark ? 'rgba(26, 92, 56, 0.3)' : '#eaf4ee',
+              borderColor: isDark ? 'rgba(46, 125, 82, 0.25)' : 'rgba(26, 92, 56, 0.25)'
             }}
           >
-            <Lock size={12} className="shrink-0 text-[#1a5c38]" />
+            <Lock size={12} className="shrink-0" style={{ color: isDark ? '#6ed9a0' : '#1a5c38' }} />
             <span>{t('intro.role_based')}</span>
           </div>
 
@@ -387,12 +413,12 @@ const IntroPage: React.FC = () => {
           <div
             className="flex items-center gap-1.5 rounded-full py-1 px-3 text-[10px] font-bold border shadow-sm"
             style={{
-              color: '#1a5c38',
-              backgroundColor: '#eaf4ee',
-              borderColor: 'rgba(26, 92, 56, 0.25)'
+              color: isDark ? '#d4a847' : '#c9a84c',
+              backgroundColor: isDark ? 'rgba(201, 168, 76, 0.2)' : '#eaf4ee',
+              borderColor: isDark ? 'rgba(201, 168, 76, 0.25)' : 'rgba(26, 92, 56, 0.25)'
             }}
           >
-            <Award size={12} className="shrink-0 text-[#c9a84c]" />
+            <Award size={12} className="shrink-0" style={{ color: isDark ? '#d4a847' : '#c9a84c' }} />
             <span>{t('intro.gov_verified')}</span>
           </div>
         </div>
@@ -403,7 +429,7 @@ const IntroPage: React.FC = () => {
       <div
         className="absolute bottom-[16px] flex items-center justify-center gap-1.5 text-[9px] tracking-[0.5px] pointer-events-none"
         style={{
-          color: '#aaaaaa',
+          color: isDark ? '#5a7a62' : '#aaaaaa',
           animation: 'fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
           animationDelay: '1250ms'
         }}
@@ -413,44 +439,61 @@ const IntroPage: React.FC = () => {
           style={{ backgroundColor: '#2e7d52' }}
         />
         <span>{t('intro.system_online')}</span>
-        <span style={{ color: '#c9a84c' }}>&middot;</span>
+        <span style={{ color: isDark ? '#d4a847' : '#c9a84c' }}>&middot;</span>
         <span>{t('intro.version')} 1.0.0</span>
-        <span style={{ color: '#c9a84c' }}>&middot;</span>
+        <span style={{ color: isDark ? '#d4a847' : '#c9a84c' }}>&middot;</span>
         <span>&copy; 2026 {t('app.department')}</span>
       </div>
 
       {/* 16. BOTTOM COLOR BAR */}
       <div
         className="fixed bottom-0 left-0 right-0 h-[3px] z-50"
-        style={{ backgroundColor: '#1a5c38' }}
+        style={{ backgroundColor: isDark ? '#2e7d52' : '#1a5c38' }}
       />
 
       {/* Interactive Info Modal */}
       {showInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeUp">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden border" style={{ borderColor: 'rgba(26, 92, 56, 0.25)' }}>
+          <div 
+            className="w-full max-w-md rounded-xl shadow-2xl overflow-hidden border" 
+            style={{ 
+              backgroundColor: isDark ? '#223328' : '#ffffff',
+              borderColor: isDark ? 'rgba(46, 125, 82, 0.3)' : 'rgba(26, 92, 56, 0.25)' 
+            }}
+          >
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b text-[#1a5c38]" style={{ borderColor: 'rgba(26, 92, 56, 0.1)', backgroundColor: '#f7faf8' }}>
+            <div 
+              className="flex items-center justify-between px-5 py-4 border-b" 
+              style={{ 
+                borderColor: isDark ? 'rgba(46, 125, 82, 0.2)' : 'rgba(26, 92, 56, 0.1)', 
+                backgroundColor: isDark ? '#1a2b1f' : '#f7faf8',
+                color: isDark ? '#c9e8d4' : '#1a5c38' 
+              }}
+            >
               <div className="flex items-center gap-2">
-                <Info size={18} style={{ color: '#c9a84c' }} />
+                <Info size={18} style={{ color: isDark ? '#d4a847' : '#c9a84c' }} />
                 <span className="font-bold text-sm uppercase tracking-wider">{t('intro.about_title')}</span>
               </div>
               <button
                 onClick={() => setShowInfo(false)}
-                className="p-1.5 rounded-full text-[#1a5c38] hover:bg-slate-100 transition duration-150 cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-slate-100/10 transition duration-150 cursor-pointer"
+                style={{ color: isDark ? '#c9e8d4' : '#1a5c38' }}
               >
                 <X size={16} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 text-left text-xs leading-relaxed text-[#666666] space-y-4">
+            <div 
+              className="p-5 text-left text-xs leading-relaxed space-y-4"
+              style={{ color: isDark ? '#9ab5a0' : '#666666' }}
+            >
               <p>
                 {t('intro.about_desc')}
               </p>
               <div className="space-y-2">
-                <h4 className="font-bold text-[#1a5c38] uppercase text-[10px] tracking-wider">{t('intro.key_functional_areas')}</h4>
+                <h4 className="font-bold uppercase text-[10px] tracking-wider" style={{ color: isDark ? '#c9e8d4' : '#1a5c38' }}>{t('intro.key_functional_areas')}</h4>
                 <ul className="list-disc list-inside pl-1 space-y-2">
                   <li>{t('intro.area_ocr')}</li>
                   <li>{t('intro.area_milestones')}</li>
@@ -458,14 +501,14 @@ const IntroPage: React.FC = () => {
                   <li>{t('intro.area_audit')}</li>
                 </ul>
               </div>
-              <p className="text-[10px] text-[#888888] border-t pt-3 flex justify-between">
+              <p className="text-[10px] border-t pt-3 flex justify-between" style={{ borderColor: isDark ? 'rgba(46, 125, 82, 0.2)' : 'rgba(0,0,0,0.1)', color: isDark ? '#5a7a62' : '#888888' }}>
                 <span>{t('intro.developer')}</span>
                 <span>{t('intro.security_protocol')}</span>
               </p>
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end px-5 py-3 border-t bg-[#f7faf8]" style={{ borderColor: 'rgba(26, 92, 56, 0.1)' }}>
+            <div className="flex justify-end px-5 py-3 border-t bg-[#f7faf8]" style={{ borderColor: isDark ? 'rgba(46, 125, 82, 0.2)' : 'rgba(26, 92, 56, 0.1)' }}>
               <button
                 onClick={() => setShowInfo(false)}
                 className="rounded-lg py-2 px-4 text-xs font-semibold text-white shadow-sm cursor-pointer hover:bg-primary-dark transition duration-150"

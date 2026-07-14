@@ -30,12 +30,15 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   return (
     <div className={`w-full ${className}`}>
       {showLabel && (
-        <div className="flex justify-between items-center mb-1 text-[12px] font-medium text-primary select-none">
+        <div 
+          className="flex justify-between items-center mb-1 text-[12px] font-medium select-none"
+          style={{ color: 'var(--text-primary)' }}
+        >
           <span>Completion Progress</span>
           <span>{pct}%</span>
         </div>
       )}
-      <div className="w-full bg-primary/10 rounded-full h-2 overflow-hidden">
+      <div className="w-full rounded-full h-2 overflow-hidden" style={{ backgroundColor: 'var(--border-default)' }}>
         <div 
           className={`${fillClass} h-full rounded-full transition-all duration-500`}
           style={{ width: `${pct}%` }}

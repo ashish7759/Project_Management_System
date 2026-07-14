@@ -193,3 +193,188 @@ def test_document_verification_flow():
             
         db.commit()
         db.close()
+
+
+def test_document_rejection_flow():
+    db = SessionLocal()
+    try:
+        # Create an admin user to reject documents
+        username = "admin_reject_test_user"
+        password = "adminpassword123"
+        
+        # Clean up existing if any
+        existing_user = db.query(User).filter(User.username == username).first()
+        if existing_user:
+            db.delete(existing_user)
+            db.commit()
+            
+        admin_user = User(
+            full_name="Admin Reject User",
+            employee_id="EMP-ADMIN-REJECT",
+            email="admin_reject@jbvnl.co.in",
+            mobile="9876543213",
+            username=username,
+            password_hash=get_password_hash(password),
+            role="Admin",
+            status="Active"
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+        
+        # Log in to get the access token
+        from middleware.rate_limiter import RateLimitMiddleware
+        RateLimitMiddleware.requests.clear()
+        
+        login_res = client.post("/api/v1/auth/login", json={
+            "username": username,
+            "password": password
+        })
+        assert login_res.status_code == 200
+        token = login_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Create a document
+        doc = MasterDocument(
+            original_file_path="C:\\mock\\reject_path.pdf",
+            file_name="mock_reject_report.pdf",
+            file_type="PDF",
+            uploaded_by=admin_user.user_id,
+            ocr_status="Completed",
+            verification_status="Pending"
+        )
+        db.add(doc)
+        db.commit()
+        db.refresh(doc)
+        
+        # Reject the document
+        verify_payload = {
+            "project_name": "Test Reject Project",
+            "project_id": "PROJ-REJECT-TEST",
+            "location": "Jamshedpur",
+            "district": "East Singhbhum",
+            "contractor_name": "Reject Contractor",
+            "contractor_id": "CONT-REJECT-TEST",
+            "work_order_number": "WO-8888",
+            "budget_amount": 500000.0,
+            "start_date": "2026-01-01",
+            "end_date": "2026-12-31",
+            "department": "Engineering",
+            "document_type": "Inspection Report",
+            "status": "In Progress",
+            "notes": "Verify reject test notes",
+            "action": "Reject",
+            "reject_reason": "Missing signature on page 3",
+            "actual_progress": 15.0,
+            "custom_fields": [{"key": "custom_key", "label": "Custom Field", "value": "Custom Val"}],
+            "milestones": [
+                {
+                    "target_date": "2026-03-31",
+                    "planned_progress": 50.0,
+                    "description": "Milestone Phase 1"
+                }
+            ]
+        }
+        
+        verify_res = client.put(f"/api/v1/documents/{doc.document_id}/verify", json=verify_payload, headers=headers)
+        assert verify_res.status_code == 200
+        assert verify_res.json()["success"] is True
+        
+        db.expire_all()
+        doc_db = db.query(MasterDocument).filter(MasterDocument.document_id == doc.document_id).first()
+        assert doc_db.verification_status == "Rejected"
+        
+        # Parse the JSON and check that fields are preserved
+        import json
+        extracted_data = json.loads(doc_db.ai_extracted_json)
+        assert "core_fields" in extracted_data
+        assert extracted_data["core_fields"]["project_name"] == "Test Reject Project"
+        assert extracted_data["core_fields"]["project_id"] == "PROJ-REJECT-TEST"
+        assert extracted_data["reject_reason"] == "Missing signature on page 3"
+        assert len(extracted_data["custom_fields"]) == 1
+        assert len(extracted_data["milestones"]) == 1
+        
+    finally:
+        # Cleanup
+        doc = db.query(MasterDocument).filter(MasterDocument.file_name == "mock_reject_report.pdf").first()
+        if doc:
+            db.delete(doc)
+        user = db.query(User).filter(User.username == "admin_reject_test_user").first()
+        if user:
+            db.delete(user)
+        db.commit()
+        db.close()
+
+
+def test_validation_exception_handler():
+    db = SessionLocal()
+    try:
+        # Create an admin user
+        username = "admin_val_test_user"
+        password = "adminpassword123"
+        
+        existing_user = db.query(User).filter(User.username == username).first()
+        if existing_user:
+            db.delete(existing_user)
+            db.commit()
+            
+        admin_user = User(
+            full_name="Admin Val User",
+            employee_id="EMP-ADMIN-VAL",
+            email="admin_val@jbvnl.co.in",
+            mobile="9876543214",
+            username=username,
+            password_hash=get_password_hash(password),
+            role="Admin",
+            status="Active"
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+        
+        from middleware.rate_limiter import RateLimitMiddleware
+        RateLimitMiddleware.requests.clear()
+        
+        login_res = client.post("/api/v1/auth/login", json={
+            "username": username,
+            "password": password
+        })
+        token = login_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Call PUT verify with invalid payload (invalid start_date format)
+        invalid_payload = {
+            "project_name": "Test Project",
+            "project_id": "PROJ-VAL-TEST",
+            "location": "Ranchi",
+            "district": "Ranchi",
+            "contractor_name": "Contractor",
+            "contractor_id": "CONT-VAL-TEST",
+            "work_order_number": "WO-123",
+            "budget_amount": 100.0,
+            "start_date": "not-a-date",  # Invalid date format triggers 422 validation error
+            "end_date": "2026-12-31",
+            "department": "Engineering",
+            "document_type": "Inspection Report",
+            "status": "Pending",
+            "action": "SaveDraft"
+        }
+        
+        verify_res = client.put("/api/v1/documents/99999/verify", json=invalid_payload, headers=headers)
+        assert verify_res.status_code == 422
+        
+        # Verify that detail is a flat string instead of a list of objects
+        res_json = verify_res.json()
+        assert "detail" in res_json
+        assert isinstance(res_json["detail"], str)
+        assert "Validation Error" in res_json["detail"]
+        assert "start_date" in res_json["detail"]
+        
+    finally:
+        user = db.query(User).filter(User.username == "admin_val_test_user").first()
+        if user:
+            db.delete(user)
+            db.commit()
+        db.close()
+
+

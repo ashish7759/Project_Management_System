@@ -13,12 +13,19 @@ from models.project import Project
 from models.contractor import Contractor
 from models.location import Location
 from models.department import Department
-from models.progress import Milestone, ProgressHistory
-from schemas.document import DocumentResponse, DocumentVerifyRequest
+from models.progress import Milestone, ProgressHistory, Task
+from schemas.document import DocumentResponse, DocumentVerifyRequest, TaskVerification
 from routers.auth import get_current_user, require_role
 from services.ocr_service import process_document_ocr
 from services.ai_extraction_service import extract_project_metadata_ai
 from services.audit_service import log_action
+from services.email_service import send_email
+from services.email_templates import (
+    document_approved_email,
+    document_rejected_email,
+)
+import asyncio
+
 
 
 router = APIRouter(prefix="/documents", tags=["Document Management"])
@@ -59,6 +66,8 @@ def run_async_ocr_pipeline(document_id: int, file_path: str):
             # Step 4: OpenAI Metadata Extraction
             ai_data = extract_project_metadata_ai(extracted_text)
             doc.ai_extracted_json = json.dumps(ai_data)
+            doc.confidence_scores = json.dumps(ai_data.get("confidence_scores", {}))
+            doc.overall_confidence = ai_data.get("overall_confidence", None)
             db.commit()
             log_action(db, user_id=None, username="SYSTEM", action_type="AI Extraction Complete", module="OCR", details={"document_id": document_id})
         else:
@@ -259,7 +268,57 @@ def list_documents(
     docs = query.order_by(MasterDocument.upload_date.desc()).all()
     for doc in docs:
         doc.ai_extracted_json = get_structured_ai_json(doc.ai_extracted_json)
+        if doc.confidence_scores:
+            try:
+                doc.confidence_scores = json.loads(doc.confidence_scores)
+            except Exception:
+                doc.confidence_scores = None
     return docs
+
+
+@router.get("/stats/confidence")
+def get_confidence_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Admin", "Manager", "Operator", "Viewer"]))
+):
+    from sqlalchemy import func, case
+    result = db.query(
+        func.avg(MasterDocument.overall_confidence).label("average"),
+        func.count(case(
+            (MasterDocument.overall_confidence >= 85, 1)
+        )).label("high_count"),
+        func.count(case(
+            (MasterDocument.overall_confidence < 60, 1)
+        )).label("low_count"),
+    ).filter(MasterDocument.overall_confidence != None).first()
+
+    return {
+        "average_confidence": round(float(result.average or 0), 1),
+        "high_count": int(result.high_count or 0),
+        "low_count": int(result.low_count or 0),
+    }
+
+
+@router.get("/{document_id}/confidence")
+def get_document_confidence(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Admin", "Manager", "Operator", "Viewer"]))
+):
+    doc = db.query(MasterDocument).filter(MasterDocument.document_id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    scores = json.loads(doc.confidence_scores) if doc.confidence_scores else {}
+
+    return {
+        "document_id": document_id,
+        "overall_confidence": doc.overall_confidence,
+        "field_scores": scores,
+        "high_fields": [f for f, s in scores.items() if s >= 85],
+        "medium_fields": [f for f, s in scores.items() if 60 <= s < 85],
+        "low_fields": [f for f, s in scores.items() if s < 60],
+    }
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)
@@ -272,11 +331,36 @@ def get_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     doc.ai_extracted_json = get_structured_ai_json(doc.ai_extracted_json)
+    if doc.confidence_scores:
+        try:
+            doc.confidence_scores = json.loads(doc.confidence_scores)
+        except Exception:
+            doc.confidence_scores = None
     return doc
 
 
+def create_tasks_recursive(db: Session, task_list: List[TaskVerification], milestone_id: int, parent_id: Optional[int] = None):
+    if not task_list:
+        return
+    for t in task_list:
+        db_task = Task(
+            milestone_id=milestone_id,
+            parent_id=parent_id,
+            title=t.title,
+            description=t.description,
+            status=t.status or "Pending",
+            assigned_to=t.assigned_to,
+            due_date=t.due_date
+        )
+        db.add(db_task)
+        db.commit()
+        db.refresh(db_task)
+        if t.subtasks:
+            create_tasks_recursive(db, t.subtasks, milestone_id, parent_id=db_task.task_id)
+
+
 @router.put("/{document_id}/verify")
-def verify_document(
+async def verify_document(
     document_id: int,
     req: DocumentVerifyRequest,
     db: Session = Depends(get_db),
@@ -306,8 +390,8 @@ def verify_document(
                 "contractor_id": req.contractor_id,
                 "work_order_number": req.work_order_number,
                 "budget_amount": req.budget_amount,
-                "start_date": str(req.start_date),
-                "end_date": str(req.end_date),
+                "start_date": str(req.start_date) if req.start_date else None,
+                "end_date": str(req.end_date) if req.end_date else None,
                 "department": req.department,
                 "document_type": req.document_type,
                 "status": req.status,
@@ -316,11 +400,7 @@ def verify_document(
             },
             "custom_fields": req.custom_fields or [],
             "milestones": [
-                {
-                    "target_date": str(m.target_date),
-                    "planned_progress": m.planned_progress,
-                    "description": m.description
-                } for m in req.milestones
+                m.model_dump(mode="json") for m in req.milestones
             ] if req.milestones else []
         }
         doc.ai_extracted_json = json.dumps(draft_fields)
@@ -345,13 +425,52 @@ def verify_document(
 
     if req.action == "Reject":
         doc.verification_status = "Rejected"
-        # Save notes and reject reason in the json
+        # Save edited metadata fields back to JSON string in master document along with reject_reason
         rejected_fields = {
-            "reject_reason": req.reject_reason,
-            "notes": req.notes
+            "core_fields": {
+                "project_name": req.project_name,
+                "project_id": req.project_id,
+                "location": req.location,
+                "district": req.district,
+                "contractor_name": req.contractor_name,
+                "contractor_id": req.contractor_id,
+                "work_order_number": req.work_order_number,
+                "budget_amount": req.budget_amount,
+                "start_date": str(req.start_date) if req.start_date else None,
+                "end_date": str(req.end_date) if req.end_date else None,
+                "department": req.department,
+                "document_type": req.document_type,
+                "status": req.status,
+                "notes": req.notes,
+                "actual_progress": req.actual_progress
+            },
+            "custom_fields": req.custom_fields or [],
+            "milestones": [
+                m.model_dump(mode="json") for m in req.milestones
+            ] if req.milestones else [],
+            "reject_reason": req.reject_reason
         }
         doc.ai_extracted_json = json.dumps(rejected_fields)
         db.commit()
+
+        # Fetch the uploader user by doc.uploaded_by
+        uploader = db.query(User).filter(
+            User.user_id == doc.uploaded_by
+        ).first()
+
+        if uploader and uploader.email:
+            template = document_rejected_email(
+                uploader_name = uploader.full_name,
+                document_name = doc.file_name,
+                rejected_by   = current_user.full_name,
+                reason        = req.reject_reason or "N/A",
+            )
+            asyncio.create_task(send_email(
+                subject    = template["subject"],
+                recipients = [uploader.email],
+                body_html  = template["body"],
+                event_type = "Document Rejected"
+            ))
 
         log_action(
             db,
@@ -362,6 +481,7 @@ def verify_document(
             details={"document_id": document_id, "reason": req.reject_reason}
         )
         return {"success": True, "message": "Document marked as Rejected."}
+
 
     if req.action == "Approve":
         # Check required primary fields for children setup
@@ -384,8 +504,8 @@ def verify_document(
                 "contractor_id": req.contractor_id,
                 "work_order_number": req.work_order_number,
                 "budget_amount": req.budget_amount,
-                "start_date": str(req.start_date),
-                "end_date": str(req.end_date),
+                "start_date": str(req.start_date) if req.start_date else None,
+                "end_date": str(req.end_date) if req.end_date else None,
                 "department": req.department,
                 "document_type": req.document_type,
                 "status": req.status,
@@ -394,11 +514,7 @@ def verify_document(
             },
             "custom_fields": req.custom_fields or [],
             "milestones": [
-                {
-                    "target_date": str(m.target_date),
-                    "planned_progress": m.planned_progress,
-                    "description": m.description
-                } for m in req.milestones
+                m.model_dump(mode="json") for m in req.milestones
             ] if req.milestones else []
         }
         doc.ai_extracted_json = json.dumps(approved_fields)
@@ -499,13 +615,37 @@ def verify_document(
                     description=m.description
                 )
                 db.add(milestone)
-            db.commit()
+                db.commit()
+                db.refresh(milestone)
+
+                if m.tasks:
+                    create_tasks_recursive(db, m.tasks, milestone.milestone_id)
 
             # Recalculate project planned progress immediately
             from routers.progress import update_planned_progress_db
             update_planned_progress_db(project, db)
 
         db.commit()
+
+        # Fetch the uploader user by doc.uploaded_by
+        uploader = db.query(User).filter(
+            User.user_id == doc.uploaded_by
+        ).first()
+
+        if uploader and uploader.email:
+            template = document_approved_email(
+                uploader_name = uploader.full_name,
+                document_name = doc.file_name,
+                document_type = req.document_type,
+                approved_by   = current_user.full_name,
+                project_name  = req.project_name or "N/A",
+            )
+            asyncio.create_task(send_email(
+                subject    = template["subject"],
+                recipients = [uploader.email],
+                body_html  = template["body"],
+                event_type = "Document Approved"
+            ))
 
         log_action(
             db,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { User, Department } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { 
   Trash2, 
   UserCheck, 
@@ -9,7 +10,9 @@ import {
   Key, 
   Filter, 
   AlertTriangle,
-  Loader2
+  Loader2,
+  List,
+  LayoutGrid
 } from 'lucide-react';
 import { Table, TableRow, TableCell } from '../components/ui/Table';
 import Badge from '../components/ui/Badge';
@@ -20,9 +23,20 @@ import Spinner from '../components/ui/Spinner';
 
 const UserManagement: React.FC = () => {
   const { t, language, getTranslatedDept } = useLanguage();
+  const { isDark } = useTheme();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // View Mode: 'list' or 'grid' (Persisted in localStorage)
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    return (localStorage.getItem('users_view_mode') as 'list' | 'grid') || 'list';
+  });
+
+  const handleViewModeChange = (mode: 'list' | 'grid') => {
+    setViewMode(mode);
+    localStorage.setItem('users_view_mode', mode);
+  };
   
   // Filters
   const [selectedDept, setSelectedDept] = useState('');
@@ -149,15 +163,43 @@ const UserManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="pb-4 border-b border-primary/10">
-        <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl font-outfit">{t('users.title')}</h1>
-        <p className="text-xs text-text-muted">{t('users.subtitle')}</p>
+      <div className="pb-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" style={{ borderBottomColor: 'var(--border-subtle)' }}>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl font-outfit" style={{ color: 'var(--text-heading)' }}>{t('users.title')}</h1>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('users.subtitle')}</p>
+        </div>
+
+        {/* View Mode Controls */}
+        <div className="flex items-center space-x-2 self-start sm:self-center">
+          <div className="bg-primary-bg-2 p-1 rounded-lg border border-primary/10 flex items-center space-x-1">
+            <button
+              onClick={() => handleViewModeChange('list')}
+              className={`p-1.5 rounded-md transition-all duration-200 cursor-pointer ${
+                viewMode === 'list' 
+                  ? 'bg-primary text-white shadow-sm' 
+                  : 'text-primary-light hover:bg-white/50'
+              }`}
+              title={language === 'hi' ? 'सूची दृश्य' : 'List View'}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleViewModeChange('grid')}
+              className={`p-1.5 rounded-md transition-all duration-200 cursor-pointer ${
+                viewMode === 'grid' 
+                  ? 'bg-primary text-white shadow-sm' 
+                  : 'text-primary-light hover:bg-white/50'
+              }`}
+              title={language === 'hi' ? 'ग्रिड दृश्य' : 'Grid View'}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {alert && (
-        <div className={`flex items-center justify-between rounded-lg border p-4 text-xs ${
-          alert.type === 'error' ? 'bg-danger-bg border-danger/25 text-danger' : 'bg-primary-bg2 border-primary/25 text-primary'
-        }`}>
+        <div className="flex items-center justify-between rounded-lg border p-4 text-xs animate-fadeIn" style={{ backgroundColor: alert.type === 'error' ? 'var(--badge-danger-bg)' : 'var(--badge-success-bg)', color: alert.type === 'error' ? 'var(--badge-danger-txt)' : 'var(--badge-success-txt)', borderColor: alert.type === 'error' ? 'var(--badge-danger-txt)' : 'var(--badge-success-txt)' }}>
           <span>{alert.message}</span>
           <button onClick={() => setAlert(null)} className="font-semibold uppercase tracking-wider text-[10px] cursor-pointer">{t('common.dismiss')}</button>
         </div>
@@ -167,11 +209,11 @@ const UserManagement: React.FC = () => {
       <div 
         className="flex flex-wrap items-center gap-4 rounded-lg border p-4 shadow-sm"
         style={{
-          backgroundColor: '#f7faf8',
-          borderColor: 'rgba(26, 92, 56, 0.12)'
+          backgroundColor: 'var(--bg-surface-2)',
+          borderColor: 'var(--border-default)'
         }}
       >
-        <div className="flex items-center text-primary-light">
+        <div className="flex items-center" style={{ color: 'var(--color-primary)' }}>
           <Filter className="mr-2 h-4 w-4" />
           <span className="text-[10px] font-semibold uppercase tracking-wider">{t('users.filters_label')}</span>
         </div>
@@ -180,7 +222,12 @@ const UserManagement: React.FC = () => {
         <select
           value={selectedDept}
           onChange={(e) => setSelectedDept(e.target.value)}
-          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
+          style={{
+            background: 'var(--input-bg)',
+            borderColor: 'var(--input-border)',
+            color: 'var(--input-text)'
+          }}
+          className="rounded-lg border px-3 py-1.5 text-xs focus:outline-none transition duration-150 cursor-pointer font-medium"
         >
           <option value="">{t('projects.all_depts')}</option>
           {departments.map(d => (
@@ -192,7 +239,12 @@ const UserManagement: React.FC = () => {
         <select
           value={selectedRole}
           onChange={(e) => setSelectedRole(e.target.value)}
-          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
+          style={{
+            background: 'var(--input-bg)',
+            borderColor: 'var(--input-border)',
+            color: 'var(--input-text)'
+          }}
+          className="rounded-lg border px-3 py-1.5 text-xs focus:outline-none transition duration-150 cursor-pointer font-medium"
         >
           <option value="">{t('users.all_roles')}</option>
           <option value="Admin">{t('users.role.admin')}</option>
@@ -205,7 +257,12 @@ const UserManagement: React.FC = () => {
         <select
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
-          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
+          style={{
+            background: 'var(--input-bg)',
+            borderColor: 'var(--input-border)',
+            color: 'var(--input-text)'
+          }}
+          className="rounded-lg border px-3 py-1.5 text-xs focus:outline-none transition duration-150 cursor-pointer font-medium"
         >
           <option value="">{t('users.all_statuses')}</option>
           <option value="Pending">{t('users.status.pending')}</option>
@@ -220,27 +277,27 @@ const UserManagement: React.FC = () => {
           <Spinner size={32} label={t('users.loading')} />
         </div>
       ) : users.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-white rounded-xl border border-primary/10">
-          <AlertTriangle className="h-8 w-8 stroke-1 text-primary-light" />
+        <div className="flex h-64 flex-col items-center justify-center rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-default)', color: 'var(--text-hint)' }}>
+          <AlertTriangle className="h-8 w-8 stroke-1" style={{ color: 'var(--text-primary)' }} />
           <span className="mt-2 text-xs font-medium">{t('users.no_users')}</span>
         </div>
-      ) : (
+      ) : viewMode === 'list' ? (
         <Table headers={[t('users.name_id'), t('users.contact_info'), t('common.department'), t('users.system_role'), t('common.status'), t('common.actions')]}>
           {users.map((u, idx) => (
             <TableRow key={u.user_id} index={idx}>
               <TableCell>
-                <div className="font-semibold text-text-body">{u.full_name}</div>
-                <div className="text-[11px] text-text-muted">{(language === 'hi' ? 'कर्मचारी आईडी' : 'Emp ID')}: {u.employee_id}</div>
-                <div className="text-[10px] font-mono text-text-hint">@{u.username}</div>
+                <div className="font-semibold text-text-body" style={{ color: 'var(--text-heading)' }}>{u.full_name}</div>
+                <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{(language === 'hi' ? 'कर्मचारी आईडी' : 'Emp ID')}: {u.employee_id}</div>
+                <div className="text-[10px] font-mono" style={{ color: 'var(--text-hint)' }}>@{u.username}</div>
               </TableCell>
               <TableCell>
                 <div className="text-text-body">{u.email}</div>
-                <div className="text-[11px] text-text-muted">{u.mobile}</div>
+                <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{u.mobile}</div>
               </TableCell>
               <TableCell>
                 <span 
-                  className="inline-flex rounded px-2 py-0.5 text-xs font-medium"
-                  style={{ backgroundColor: 'rgba(26, 92, 56, 0.08)', color: '#1a5c38' }}
+                  className="inline-flex rounded px-2 py-0.5 text-xs font-medium border"
+                  style={{ backgroundColor: 'var(--badge-success-bg)', color: 'var(--badge-success-txt)', borderColor: 'rgba(26,92,56,0.2)' }}
                 >
                   {getTranslatedDept(u.department?.department_name)}
                 </span>
@@ -249,7 +306,12 @@ const UserManagement: React.FC = () => {
                 <select
                   value={u.role}
                   onChange={(e) => handleRoleChange(u.user_id, e.target.value)}
-                  className="rounded-lg border border-primary/20 bg-white px-2 py-1 text-xs font-medium text-text-body focus:outline-none focus:border-primary cursor-pointer"
+                  style={{
+                    background: 'var(--input-bg)',
+                    borderColor: 'var(--input-border)',
+                    color: 'var(--input-text)'
+                  }}
+                  className="rounded-lg border px-2 py-1 text-xs font-medium focus:outline-none cursor-pointer"
                 >
                   <option value="Admin">{t('users.role.admin')}</option>
                   <option value="Manager">{t('users.role.manager')}</option>
@@ -278,12 +340,13 @@ const UserManagement: React.FC = () => {
                   <Button
                     variant="icon"
                     onClick={() => setResettingUser(u)}
-                    className="text-text-muted hover:text-primary"
+                    className="hover:text-primary"
+                    style={{ color: 'var(--text-muted)' }}
                     title={t('users.reset_tooltip')}
                   >
                     <Key className="h-4.5 w-4.5" />
                   </Button>
-
+ 
                   {/* Delete Button */}
                   <Button
                     variant="icon"
@@ -298,6 +361,127 @@ const UserManagement: React.FC = () => {
             </TableRow>
           ))}
         </Table>
+      ) : (
+        /* Grid (Card) View */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {users.map((u) => (
+            <div
+              key={u.user_id}
+              className="bg-surface border border-primary/10 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-default)'
+              }}
+            >
+              {/* Card Header */}
+              <div className="p-4 border-b border-primary/5 bg-primary-bg-2/30 flex items-center justify-between" style={{ borderBottomColor: 'var(--border-subtle)' }}>
+                <span className="text-xs font-mono font-bold text-text-hint">
+                  Emp ID: {u.employee_id}
+                </span>
+                <Badge variant={getStatusBadgeVariant(u.status)}>
+                  {t('users.status.' + u.status.toLowerCase())}
+                </Badge>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-5 flex-1 space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div 
+                    className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm text-primary"
+                    style={{ backgroundColor: 'var(--badge-success-bg)', color: 'var(--badge-success-txt)' }}
+                  >
+                    {u.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold leading-snug group-hover:text-primary transition-colors duration-200 animate-slideDown" style={{ color: 'var(--text-heading)' }}>
+                      {u.full_name}
+                    </h3>
+                    <p className="text-[11px] font-mono" style={{ color: 'var(--text-hint)' }}>@{u.username}</p>
+                  </div>
+                </div>
+
+                {/* Contact Info & Department */}
+                <div className="space-y-2 text-[12px] p-3 rounded-xl border animate-fadeIn" style={{ backgroundColor: 'var(--bg-surface-2)', borderColor: 'var(--border-default)' }}>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: 'var(--text-muted)' }}>{language === 'hi' ? 'ईमेल' : 'Email'}:</span>
+                    <span className="font-medium text-text-body truncate max-w-[150px]">{u.email}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: 'var(--text-muted)' }}>{language === 'hi' ? 'मोबाइल' : 'Mobile'}:</span>
+                    <span className="font-medium text-text-body">{u.mobile}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1.5 border-t" style={{ borderTopColor: 'var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('common.department')}:</span>
+                    <span 
+                      className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium border"
+                      style={{ backgroundColor: 'var(--badge-success-bg)', color: 'var(--badge-success-txt)', borderColor: 'rgba(26,92,56,0.2)' }}
+                    >
+                      {getTranslatedDept(u.department?.department_name)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* System Role Selector */}
+                <div className="animate-fadeIn">
+                  <label className="block text-[10px] uppercase font-bold tracking-wider mb-1" style={{ color: 'var(--text-hint)' }}>
+                    {t('users.system_role')}
+                  </label>
+                  <select
+                    value={u.role}
+                    onChange={(e) => handleRoleChange(u.user_id, e.target.value)}
+                    style={{
+                      background: 'var(--input-bg)',
+                      borderColor: 'var(--input-border)',
+                      color: 'var(--input-text)'
+                    }}
+                    className="w-full rounded-lg border px-3 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer"
+                  >
+                    <option value="Admin">{t('users.role.admin')}</option>
+                    <option value="Manager">{t('users.role.manager')}</option>
+                    <option value="Operator">{t('users.role.operator')}</option>
+                    <option value="Viewer">{t('users.role.viewer')}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Card Footer Actions */}
+              <div className="px-5 py-3 border-t flex items-center justify-end space-x-2 bg-primary-bg-2/30" style={{ borderTopColor: 'var(--border-subtle)' }}>
+                {/* Status Toggle Button */}
+                <Button
+                  variant="secondary"
+                  onClick={() => handleStatusToggle(u)}
+                  className={`!py-1.5 !px-3 text-xs flex items-center space-x-1 ${u.status === 'Active' ? 'text-accent-dark' : 'text-primary'}`}
+                  title={u.status === 'Active' ? t('users.deactivate_tooltip') : t('users.activate_tooltip')}
+                >
+                  {u.status === 'Active' ? <UserX className="h-4 w-4 mr-1" /> : <UserCheck className="h-4 w-4 mr-1" />}
+                  <span>{u.status === 'Active' ? (language === 'hi' ? 'निष्क्रिय' : 'Deactivate') : (language === 'hi' ? 'सक्रिय' : 'Activate')}</span>
+                </Button>
+
+                {/* Password Reset Modal Trigger */}
+                <Button
+                  variant="secondary"
+                  onClick={() => setResettingUser(u)}
+                  style={{ color: 'var(--text-muted)' }}
+                  title={t('users.reset_tooltip')}
+                  className="!py-1.5 !px-3 text-xs flex items-center space-x-1"
+                >
+                  <Key className="h-4 w-4" />
+                  <span>{language === 'hi' ? 'रीसेट' : 'Reset'}</span>
+                </Button>
+
+                {/* Delete Button */}
+                <Button
+                  variant="icon"
+                  onClick={() => handleDeleteUser(u.user_id)}
+                  className="text-danger hover:bg-danger-bg hover:text-danger border border-transparent hover:border-danger/10 !p-1.5 rounded-lg"
+                  title="Delete Account"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Password Reset Modal */}
@@ -326,7 +510,7 @@ const UserManagement: React.FC = () => {
       >
         {resettingUser && (
           <div className="space-y-4">
-            <p className="text-xs text-text-muted">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {t('users.reset_for')} <span className="font-semibold text-primary">{resettingUser.full_name}</span>.
             </p>
             <Input

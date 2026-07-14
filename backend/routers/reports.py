@@ -16,6 +16,8 @@ from models.progress import ProgressHistory
 from routers.auth import get_current_user, require_role
 from services.report_service import generate_excel_report, generate_pdf_report
 from services.audit_service import log_action
+from services.scheduler_service import send_monthly_summary
+
 
 
 router = APIRouter(prefix="/reports", tags=["Report Generation"])
@@ -362,3 +364,15 @@ def export_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename=report_{report_type}_{int(datetime.now().timestamp())}.xlsx"}
     )
+
+
+@router.post("/send-monthly-summary")
+async def trigger_monthly_summary(
+    current_user: User = Depends(require_role(["Admin"]))
+):
+    await send_monthly_summary()
+    return {
+        "success" : True,
+        "message" : "Monthly summary emails sent to all Admins and Managers"
+    }
+

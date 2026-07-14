@@ -11,6 +11,15 @@ from models.audit import AuditLog
 from schemas.user import UserResponse, UserUpdate, UserResetPassword
 from routers.auth import require_role, get_password_hash
 from services.audit_service import log_action
+from services.email_service import send_email
+from services.email_templates import (
+    account_approved_email,
+    account_rejected_email,
+    account_deactivated_email,
+    password_reset_email,
+)
+import asyncio
+
 
 
 router = APIRouter(prefix="/users", tags=["User Management"])
@@ -39,7 +48,7 @@ def list_users(
 
 
 @router.put("/{user_id}", response_model=UserResponse)
-def update_user(
+async def update_user(
     user_id: int,
     req: UserUpdate,
     db: Session = Depends(get_db),
@@ -80,13 +89,54 @@ def update_user(
             details={"target_user_id": user.user_id, "old_status": old_status, "new_status": req.status}
         )
 
+        # Email triggers:
+        if old_status == "Pending" and req.status == "Active":
+            # Admin APPROVES user
+            template = account_approved_email(
+                full_name = user.full_name,
+                username  = user.username,
+                role      = user.role,
+            )
+            asyncio.create_task(send_email(
+                subject    = template["subject"],
+                recipients = [user.email],
+                body_html  = template["body"],
+                event_type = "Account Approved"
+            ))
+        elif old_status == "Pending" and req.status == "Inactive":
+            # Admin REJECTS user
+            request = req
+            template = account_rejected_email(
+                full_name = user.full_name,
+                reason    = getattr(request, 'reason', None) or "Does not meet eligibility criteria",
+            )
+            asyncio.create_task(send_email(
+                subject    = template["subject"],
+                recipients = [user.email],
+                body_html  = template["body"],
+                event_type = "Account Rejected"
+            ))
+        elif old_status == "Active" and req.status == "Inactive":
+            # Admin DEACTIVATES user
+            template = account_deactivated_email(
+                full_name     = user.full_name,
+                deactivated_by= current_user.full_name,
+            )
+            asyncio.create_task(send_email(
+                subject    = template["subject"],
+                recipients = [user.email],
+                body_html  = template["body"],
+                event_type = "Account Deactivated"
+            ))
+
+
     db.commit()
     db.refresh(user)
     return user
 
 
 @router.put("/{user_id}/role", response_model=UserResponse)
-def update_user_role(
+async def update_user_role(
     user_id: int,
     req: UserUpdate,
     db: Session = Depends(get_db),
@@ -94,11 +144,11 @@ def update_user_role(
 ):
     if not req.role:
         raise HTTPException(status_code=400, detail="Role is required")
-    return update_user(user_id, UserUpdate(role=req.role), db, current_user)
+    return await update_user(user_id, UserUpdate(role=req.role), db, current_user)
 
 
 @router.put("/{user_id}/status", response_model=UserResponse)
-def update_user_status(
+async def update_user_status(
     user_id: int,
     req: UserUpdate,
     db: Session = Depends(get_db),
@@ -106,11 +156,11 @@ def update_user_status(
 ):
     if not req.status:
         raise HTTPException(status_code=400, detail="Status is required")
-    return update_user(user_id, UserUpdate(status=req.status), db, current_user)
+    return await update_user(user_id, UserUpdate(status=req.status), db, current_user)
 
 
 @router.put("/{user_id}/reset-password")
-def reset_password(
+async def reset_password(
     user_id: int,
     req: UserResetPassword,
     db: Session = Depends(get_db),
@@ -122,6 +172,18 @@ def reset_password(
 
     user.password_hash = get_password_hash(req.new_password)
     db.commit()
+
+    template = password_reset_email(
+        full_name    = user.full_name,
+        new_password = req.new_password,
+        reset_by     = current_user.full_name,
+    )
+    asyncio.create_task(send_email(
+        subject    = template["subject"],
+        recipients = [user.email],
+        body_html  = template["body"],
+        event_type = "Password Reset"
+    ))
 
     log_action(
         db,
@@ -169,3 +231,45 @@ def delete_user(
         details={"deleted_user_id": user_id, "deleted_username": user.username}
     )
     return {"success": True, "message": "User deleted successfully."}
+
+
+@router.post("/test-email")
+async def test_email(
+    current_user: User = Depends(admin_dependency)
+):
+    success = await send_email(
+        subject    = "Test Email — Jharkhand Bijli Office System",
+        recipients = [current_user.email],
+        body_html  = """
+            <p>This is a test email from the
+               Jharkhand Bijli Office Portal.</p>
+            <p>If you received this, your SMTP configuration
+               is working correctly.</p>
+            <div class='info-box'>
+              <div class='info-row'>
+                <span class='info-label'>Status</span>
+                <span class='info-val'>
+                  <span class='badge badge-green'>
+                    Email System Active
+                  </span>
+                </span>
+              </div>
+            </div>
+        """,
+        event_type = "Test Email"
+    )
+    if success:
+        return {"success": True,
+                "message": f"Test email sent to {current_user.email}"}
+    return {"success": False,
+            "message": "Email sending failed. Check SMTP settings."}
+
+
+@router.get("/minimal", response_model=List[UserResponse])
+def list_users_minimal(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Admin", "Manager", "Operator"]))
+):
+    return db.query(User).filter(User.status.in_(["Active", "active"])).all()
+
+

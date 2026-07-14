@@ -6,6 +6,7 @@ from database import Base
 
 class User(Base):
     __tablename__ = "user_account"  # "user" is a reserved word in MS SQL Server, so we name the table "user_account"
+    __table_args__ = {"implicit_returning": False}
 
     user_id = Column(Integer, primary_key=True, autoincrement=True)
     full_name = Column(NVARCHAR(100), nullable=False)

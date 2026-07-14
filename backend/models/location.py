@@ -7,6 +7,7 @@ from database import Base
 
 class Location(Base):
     __tablename__ = "location"
+    __table_args__ = {"implicit_returning": False}
 
     location_id = Column(Integer, primary_key=True, autoincrement=True)
     location_name = Column(NVARCHAR(255), nullable=False)

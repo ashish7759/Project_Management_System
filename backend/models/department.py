@@ -6,6 +6,7 @@ from database import Base
 
 class Department(Base):
     __tablename__ = "department"
+    __table_args__ = {"implicit_returning": False}
 
     department_id = Column(Integer, primary_key=True, autoincrement=True)
     department_name = Column(NVARCHAR(100), unique=True, nullable=False)

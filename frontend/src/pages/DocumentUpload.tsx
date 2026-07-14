@@ -7,7 +7,11 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Button from '../components/ui/Button';
 
-const DocumentUpload: React.FC = () => {
+interface DocumentUploadProps {
+  hideHeader?: boolean;
+}
+
+const DocumentUpload: React.FC<DocumentUploadProps> = ({ hideHeader = false }) => {
   const navigate = useNavigate();
   const { t, language, getTranslatedDept } = useLanguage();
 
@@ -188,14 +192,16 @@ const DocumentUpload: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="pb-4 border-b border-primary/10">
-        <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl font-outfit">{t('docs.upload_title')}</h1>
-        <p className="text-xs text-text-muted">
-          {language === 'hi' 
-            ? 'एआई मेटाडेटा निष्कर्षण को ट्रिगर करने के लिए अनुबंध पत्र, निरीक्षण रिपोर्ट या कार्य आदेश अपलोड करें।' 
-            : 'Upload contract papers, inspection reports, or work orders to trigger AI metadata extraction.'}
-        </p>
-      </div>
+      {!hideHeader && (
+        <div className="pb-4 border-b border-primary/10">
+          <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl font-outfit">{t('docs.upload_title')}</h1>
+          <p className="text-xs text-text-muted">
+            {language === 'hi' 
+              ? 'एआई मेटाडेटा निष्कर्षण को ट्रिगर करने के लिए अनुबंध पत्र, निरीक्षण रिपोर्ट या कार्य आदेश अपलोड करें।' 
+              : 'Upload contract papers, inspection reports, or work orders to trigger AI metadata extraction.'}
+          </p>
+        </div>
+      )}
 
       {notification && (
         <div className={`flex items-center space-x-2 rounded-lg border p-4 text-xs ${
@@ -271,7 +277,7 @@ const DocumentUpload: React.FC = () => {
         </div>
 
         {/* Metadata Sidebar Form */}
-        <div className="rounded-xl border border-primary/15 bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-primary/15 bg-surface p-5 shadow-sm">
           <h3 className="text-sm font-semibold text-primary border-b border-primary/10 pb-3 uppercase tracking-wider font-outfit">
             {language === 'hi' ? 'दस्तावेज़ मेटाडेटा' : 'Document Metadata'}
           </h3>
@@ -315,7 +321,7 @@ const DocumentUpload: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="w-full bg-white border border-primary/25 rounded-lg py-[0.6rem] px-[0.9rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
+                className="w-full bg-surface border border-primary/25 rounded-lg py-[0.6rem] px-[0.9rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
                 placeholder={t('docs.desc_placeholder')}
               />
             </div>

@@ -97,7 +97,7 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f7faf8' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-page)' }}>
       {/* Top Header Bar */}
       <Topbar onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
       

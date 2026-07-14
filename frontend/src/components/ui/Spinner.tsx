@@ -18,10 +18,11 @@ export const Spinner: React.FC<SpinnerProps> = ({
     <div className={`flex flex-col items-center justify-center gap-2 ${className}`}>
       <Loader2 
         size={size} 
-        className="animate-spin text-primary" 
+        className="animate-spin" 
+        style={{ color: 'var(--text-primary)' }}
       />
       {label && (
-        <span className="text-sm font-semibold text-primary">
+        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
           {label}
         </span>
       )}
@@ -30,7 +31,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
 
   if (fullPage) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-page)' }}>
         {spinnerElement}
       </div>
     );

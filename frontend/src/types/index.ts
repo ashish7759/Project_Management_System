@@ -33,6 +33,8 @@ export interface MasterDocument {
   approved_at?: string | null;
   raw_ocr_text?: string | null;
   ai_extracted_json?: string | null;
+  confidence_scores?: Record<string, number> | null;
+  overall_confidence?: number | null;
 }
 
 export interface Project {
@@ -50,6 +52,7 @@ export interface Project {
   document_id?: number | null;
   created_at: string;
   department?: Department | null;
+  work_order_number?: string | null;
 }
 
 export interface Contractor {
@@ -81,11 +84,28 @@ export interface ProgressHistory {
   updater_name?: string | null;
 }
 
+export interface Task {
+  task_id: number;
+  milestone_id: number;
+  parent_id?: number | null;
+  title: string;
+  description?: string | null;
+  status: 'Pending' | 'In Progress' | 'Completed';
+  assigned_to?: number | null;
+  assignee_name?: string | null;
+  due_date?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  subtasks?: Task[];
+}
+
 export interface Milestone {
   milestone_id: number;
   project_id: string;
   target_date: string;
   planned_progress: number;
+  description?: string | null;
+  tasks?: Task[];
 }
 
 export interface AuditLog {

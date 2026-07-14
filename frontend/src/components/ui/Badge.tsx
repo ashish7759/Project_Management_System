@@ -12,27 +12,42 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '' 
 }) => {
   let badgeStyles = 'inline-flex items-center gap-1 text-[11px] font-medium py-[3px] px-[10px] rounded-full border';
+  let inlineStyle: React.CSSProperties = {};
 
   switch (variant) {
     case 'completed':
-      badgeStyles += ' bg-primary-bg2 text-primary border-primary/30';
+      inlineStyle = { 
+        background: 'var(--badge-success-bg)', 
+        color: 'var(--badge-success-txt)', 
+        borderColor: 'rgba(26,92,56,0.3)' 
+      };
       break;
     case 'inprogress':
-      badgeStyles += ' bg-warning-bg text-accent-dark border-accent/40';
-      break;
     case 'pending':
-      badgeStyles += ' bg-[#fff8e1] text-[#b8860b] border-[#b8860b]/30';
+      inlineStyle = { 
+        background: 'var(--badge-warning-bg)', 
+        color: 'var(--badge-warning-txt)', 
+        borderColor: 'rgba(201,168,76,0.25)' 
+      };
       break;
     case 'delayed':
-      badgeStyles += ' bg-danger-bg text-danger border-danger/20';
+      inlineStyle = { 
+        background: 'var(--badge-danger-bg)', 
+        color: 'var(--badge-danger-txt)', 
+        borderColor: 'rgba(185,28,28,0.2)' 
+      };
       break;
     default:
-      badgeStyles += ' bg-primary-bg text-primary-light border-primary/20';
+      inlineStyle = { 
+        background: 'var(--bg-surface-hover)', 
+        color: 'var(--text-muted)', 
+        borderColor: 'var(--border-default)' 
+      };
       break;
   }
 
   return (
-    <span className={`${badgeStyles} ${className}`}>
+    <span className={`${badgeStyles} ${className}`} style={inlineStyle}>
       {children}
     </span>
   );

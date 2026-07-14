@@ -7,6 +7,7 @@ from database import Base
 
 class Contractor(Base):
     __tablename__ = "contractor"
+    __table_args__ = {"implicit_returning": False}
 
     contractor_id = Column(NVARCHAR(100), primary_key=True)  # Alphanumeric Contractor ID from OCR or manual
     contractor_name = Column(NVARCHAR(255), nullable=False)
@@ -17,4 +18,4 @@ class Contractor(Base):
     created_at = Column(DateTime, server_default=text("GETDATE()"), nullable=False)
     updated_at = Column(DateTime, onupdate=func.now(), nullable=True)
 
-    project = relationship("Project")
+    project = relationship("Project", back_populates="contractor")

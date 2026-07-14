@@ -8,12 +8,14 @@ import { ShieldAlert, Lock, User as UserIcon, Loader2, Zap } from 'lucide-react'
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import LanguageToggle from '../components/ui/LanguageToggle';
 
 const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { isDark } = useTheme();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,8 +30,8 @@ const Login: React.FC = () => {
 
     const DOT_SPACING = 28;
     const DOT_RADIUS  = 1.8;
-    const DOT_COLOR   = '#1a5c38';
-    const ACCENT_COLOR= '#c9a84c';
+    const DOT_COLOR   = isDark ? '#2e7d52' : '#1a5c38';
+    const ACCENT_COLOR= isDark ? '#d4a847' : '#c9a84c';
 
     // Dots array
     type Dot = {
@@ -63,6 +65,7 @@ const Login: React.FC = () => {
     const resize = () => {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
+      canvas.style.background = isDark ? '#0f1a13' : '#f7faf8';
       buildDots();
     };
 
@@ -95,7 +98,7 @@ const Login: React.FC = () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener('resize', resize);
     };
-  }, []);
+  }, [isDark]);
 
   const loginSchema = z.object({
     username: z.string().min(3, t('auth.username_min')),
@@ -111,7 +114,6 @@ const Login: React.FC = () => {
       const navType = (navigationEntries[0] as PerformanceNavigationTiming).type;
       isReload = navType === 'reload';
     } else {
-      // Fallback for compatibility
       isReload = performance.navigation.type === 1;
     }
 
@@ -148,7 +150,7 @@ const Login: React.FC = () => {
     <div 
       className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative overflow-hidden" 
       style={{ 
-        backgroundColor: '#f7faf8',
+        backgroundColor: isDark ? '#0f1a13' : '#f7faf8',
         minHeight: '100vh',
         width: '100%',
         display: 'flex',
@@ -160,6 +162,7 @@ const Login: React.FC = () => {
       {/* Dot Grid Canvas */}
       <canvas
         ref={canvasRef}
+        className="no-transition"
         style={{
           position: 'absolute',
           top: 0,
@@ -203,9 +206,9 @@ const Login: React.FC = () => {
       <div 
         className="w-full max-w-md space-y-6 rounded-xl border p-8 relative login-card"
         style={{
-          backgroundColor: '#ffffff',
-          borderTop: '4px solid #1a5c38',
-          borderColor: 'rgba(26, 92, 56, 0.15)',
+          backgroundColor: isDark ? '#1a2b1f' : '#ffffff',
+          borderTop: isDark ? '4px solid #2e7d52' : '4px solid #1a5c38',
+          borderColor: isDark ? 'rgba(46, 125, 82, 0.25)' : 'rgba(26, 92, 56, 0.15)',
           position: 'relative',
           zIndex: 1
         }}
@@ -215,39 +218,39 @@ const Login: React.FC = () => {
           <div 
             className="relative w-[92px] h-[92px] rounded-full border-[1.5px] flex items-center justify-center shadow-sm mx-auto mb-4"
             style={{
-              borderColor: '#c9a84c',
-              backgroundColor: '#f9f5ec'
+              borderColor: isDark ? '#d4a847' : '#c9a84c',
+              backgroundColor: isDark ? '#223328' : '#f9f5ec'
             }}
           >
             {/* 4 golden dots */}
-            <div className="absolute -top-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-            <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-            <div className="absolute -left-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
-            <div className="absolute -right-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: '#c9a84c' }} />
+            <div className="absolute -top-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }} />
+            <div className="absolute -bottom-[3.5px] left-1/2 -translate-x-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }} />
+            <div className="absolute -left-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }} />
+            <div className="absolute -right-[3.5px] top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full" style={{ backgroundColor: isDark ? '#d4a847' : '#c9a84c' }} />
 
             {/* Inner circle */}
             <div 
               className="w-[72px] h-[72px] rounded-full flex items-center justify-center shadow animate-boltFlash"
-              style={{ backgroundColor: '#1a5c38' }}
+              style={{ backgroundColor: isDark ? '#2e7d52' : '#1a5c38' }}
             >
               <Zap 
                 size={32} 
-                style={{ color: '#c9a84c' }} 
+                style={{ color: isDark ? '#d4a847' : '#c9a84c' }} 
               />
             </div>
           </div>
           
-          <h2 className="text-xl font-bold tracking-tight animate-fadeIn" style={{ color: '#1a5c38' }}>
+          <h2 className="text-xl font-bold tracking-tight animate-fadeIn font-outfit uppercase" style={{ color: isDark ? '#c9e8d4' : '#1a5c38' }}>
             {t('app.name')}
           </h2>
-          <p className="mt-1 text-xs animate-fadeIn" style={{ color: '#666666' }}>
+          <p className="mt-1 text-xs animate-fadeIn" style={{ color: isDark ? '#9ab5a0' : '#666666' }}>
             {t('auth.sign_in')}
           </p>
         </div>
 
         {errorMsg && (
-          <div className="flex items-center space-x-2 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-800">
-            <ShieldAlert className="h-5 w-5 shrink-0 text-red-600" />
+          <div className="flex items-center space-x-2 rounded-lg border p-4 text-xs" style={{ backgroundColor: 'var(--badge-danger-bg)', color: 'var(--badge-danger-txt)', borderColor: 'var(--badge-danger-txt)' }}>
+            <ShieldAlert className="h-5 w-5 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -276,8 +279,8 @@ const Login: React.FC = () => {
           />
 
           <div className="flex items-center justify-between text-xs pt-1">
-            <span style={{ color: '#666666' }}>{t('auth.need_account')}</span>
-            <Link to="/register" className="font-semibold transition duration-150" style={{ color: '#c9a84c' }} onMouseOver={(e) => e.currentTarget.style.color = '#a8863c'} onMouseOut={(e) => e.currentTarget.style.color = '#c9a84c'}>
+            <span style={{ color: isDark ? '#9ab5a0' : '#666666' }}>{t('auth.need_account')}</span>
+            <Link to="/register" className="font-semibold transition duration-150" style={{ color: isDark ? '#d4a847' : '#c9a84c' }} onMouseOver={(e) => e.currentTarget.style.color = isDark ? '#c9a84c' : '#a8863c'} onMouseOut={(e) => e.currentTarget.style.color = isDark ? '#d4a847' : '#c9a84c'}>
               {t('auth.register_link')}
             </Link>
           </div>
@@ -301,8 +304,8 @@ const Login: React.FC = () => {
         </form>
 
         {/* Footer Note */}
-        <div className="text-center pt-2 border-t border-primary/10">
-          <span className="text-[11px]" style={{ color: '#999999' }}>
+        <div className="text-center pt-2 border-t" style={{ borderTopColor: 'var(--border-subtle)' }}>
+          <span className="text-[11px]" style={{ color: isDark ? '#5a7a62' : '#999999' }}>
             {t('auth.footer_text')}
           </span>
         </div>

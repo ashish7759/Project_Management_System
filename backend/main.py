@@ -2,21 +2,22 @@ import logging
 import os
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
 from config import settings
 from database import engine, Base, check_db_connection, SessionLocal
 from middleware.rate_limiter import RateLimitMiddleware
 
 
 # Import all models so Base knows about them
-from models import user, document, project, contractor, location, department, progress, audit, change_log
+from models import user, document, project, contractor, location, department, progress, audit, change_log, issue
 from models.department import Department
 
 # Import routers
-from routers import auth, users, documents, projects, progress as progress_router, reports, audit as audit_router, dashboard
+from routers import auth, users, documents, projects, progress as progress_router, reports, audit as audit_router, dashboard, issues
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -177,6 +178,31 @@ def setup_database_triggers(engine):
                 """))
 
                 conn.execute(text("""
+                    CREATE TRIGGER IF NOT EXISTS trg_task_insert
+                    AFTER INSERT ON task
+                    BEGIN
+                        INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                        VALUES ('task', 'INSERT', CAST(NEW.task_id AS TEXT), datetime('now'));
+                    END;
+                """))
+                conn.execute(text("""
+                    CREATE TRIGGER IF NOT EXISTS trg_task_update
+                    AFTER UPDATE ON task
+                    BEGIN
+                        INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                        VALUES ('task', 'UPDATE', CAST(NEW.task_id AS TEXT), datetime('now'));
+                    END;
+                """))
+                conn.execute(text("""
+                    CREATE TRIGGER IF NOT EXISTS trg_task_delete
+                    AFTER DELETE ON task
+                    BEGIN
+                        INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                        VALUES ('task', 'DELETE', CAST(OLD.task_id AS TEXT), datetime('now'));
+                    END;
+                """))
+
+                conn.execute(text("""
                     CREATE TRIGGER IF NOT EXISTS trg_progress_insert
                     AFTER INSERT ON progress_history
                     BEGIN
@@ -304,6 +330,32 @@ def setup_database_triggers(engine):
                     END;
                 """))
 
+                # Issue triggers
+                conn.execute(text("""
+                    CREATE TRIGGER IF NOT EXISTS trg_issue_insert
+                    AFTER INSERT ON project_issue
+                    BEGIN
+                        INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                        VALUES ('project_issue', 'INSERT', CAST(NEW.issue_id AS TEXT), datetime('now'));
+                    END;
+                """))
+                conn.execute(text("""
+                    CREATE TRIGGER IF NOT EXISTS trg_issue_update
+                    AFTER UPDATE ON project_issue
+                    BEGIN
+                        INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                        VALUES ('project_issue', 'UPDATE', CAST(NEW.issue_id AS TEXT), datetime('now'));
+                    END;
+                """))
+                conn.execute(text("""
+                    CREATE TRIGGER IF NOT EXISTS trg_issue_delete
+                    AFTER DELETE ON project_issue
+                    BEGIN
+                        INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                        VALUES ('project_issue', 'DELETE', CAST(OLD.issue_id AS TEXT), datetime('now'));
+                    END;
+                """))
+
             else:
                 logger.info("Configuring MS SQL Server database triggers...")
                 conn.execute(text("""
@@ -398,6 +450,38 @@ def setup_database_triggers(engine):
                         BEGIN
                             INSERT INTO database_change_log (table_name, action, row_id, timestamp)
                             SELECT 'milestone', 'DELETE', CAST(milestone_id AS NVARCHAR(100)), GETDATE() FROM deleted;
+                        END
+                    END
+                """))
+
+                conn.execute(text("""
+                    IF OBJECT_ID('trg_task_changes', 'TR') IS NOT NULL
+                        DROP TRIGGER trg_task_changes;
+                """))
+                conn.execute(text("""
+                    CREATE TRIGGER trg_task_changes
+                    ON task
+                    AFTER INSERT, UPDATE, DELETE
+                    AS
+                    BEGIN
+                        SET NOCOUNT ON;
+                        IF EXISTS(SELECT * FROM inserted)
+                        BEGIN
+                            IF EXISTS(SELECT * FROM deleted)
+                            BEGIN
+                                INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                                SELECT 'task', 'UPDATE', CAST(task_id AS NVARCHAR(100)), GETDATE() FROM inserted;
+                            END
+                            ELSE
+                            BEGIN
+                                INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                                SELECT 'task', 'INSERT', CAST(task_id AS NVARCHAR(100)), GETDATE() FROM inserted;
+                            END
+                        END
+                        ELSE
+                        BEGIN
+                            INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                            SELECT 'task', 'DELETE', CAST(task_id AS NVARCHAR(100)), GETDATE() FROM deleted;
                         END
                     END
                 """))
@@ -532,7 +616,6 @@ def setup_database_triggers(engine):
                     END
                 """))
 
-                # Location triggers
                 conn.execute(text("""
                     IF OBJECT_ID('trg_location_changes', 'TR') IS NOT NULL
                         DROP TRIGGER trg_location_changes;
@@ -564,6 +647,40 @@ def setup_database_triggers(engine):
                         END
                     END
                 """))
+
+                # Issue triggers (MS SQL Server)
+                conn.execute(text("""
+                    IF OBJECT_ID('trg_issue_changes', 'TR') IS NOT NULL
+                        DROP TRIGGER trg_issue_changes;
+                """))
+                conn.execute(text("""
+                    CREATE TRIGGER trg_issue_changes
+                    ON project_issue
+                    AFTER INSERT, UPDATE, DELETE
+                    AS
+                    BEGIN
+                        SET NOCOUNT ON;
+                        IF EXISTS(SELECT * FROM inserted)
+                        BEGIN
+                            IF EXISTS(SELECT * FROM deleted)
+                            BEGIN
+                                INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                                SELECT 'project_issue', 'UPDATE', CAST(issue_id AS NVARCHAR(100)), GETDATE() FROM inserted;
+                            END
+                            ELSE
+                            BEGIN
+                                INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                                SELECT 'project_issue', 'INSERT', CAST(issue_id AS NVARCHAR(100)), GETDATE() FROM inserted;
+                            END
+                        END
+                        ELSE
+                        BEGIN
+                            INSERT INTO database_change_log (table_name, action, row_id, timestamp)
+                            SELECT 'project_issue', 'DELETE', CAST(issue_id AS NVARCHAR(100)), GETDATE() FROM deleted;
+                        END
+                    END
+                """))
+
             conn.commit()
             logger.info("Database triggers initialized successfully.")
     except Exception as e:
@@ -577,26 +694,127 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     check_db_connection()
 
-    # Ensure description column exists in milestone table (useful for existing databases)
+    # Ensure description, title, percentage, status, source columns exist in milestone table (useful for existing databases)
     try:
         from sqlalchemy import text
         with engine.connect() as conn:
-            if settings.DATABASE_URL.startswith("sqlite"):
+            if settings.DATABASE_URL.startswith("sqlite") or engine.url.drivername.startswith("sqlite"):
                 res = conn.execute(text("PRAGMA table_info(milestone)"))
                 cols = [r[1] for r in res.fetchall()]
                 if "description" not in cols:
                     logger.info("Adding description column to milestone table (SQLite)...")
                     conn.execute(text("ALTER TABLE milestone ADD COLUMN description TEXT"))
+                if "title" not in cols:
+                    logger.info("Adding title column to milestone table (SQLite)...")
+                    conn.execute(text("ALTER TABLE milestone ADD COLUMN title TEXT"))
+                if "percentage" not in cols:
+                    logger.info("Adding percentage column to milestone table (SQLite)...")
+                    conn.execute(text("ALTER TABLE milestone ADD COLUMN percentage REAL"))
+                if "status" not in cols:
+                    logger.info("Adding status column to milestone table (SQLite)...")
+                    conn.execute(text("ALTER TABLE milestone ADD COLUMN status TEXT"))
+                if "source" not in cols:
+                    logger.info("Adding source column to milestone table (SQLite)...")
+                    conn.execute(text("ALTER TABLE milestone ADD COLUMN source TEXT"))
             else:
-                res = conn.execute(text(
-                    "SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('milestone') AND name = 'description'"
-                ))
-                if not res.fetchone():
-                    logger.info("Adding description column to milestone table (SQL Server)...")
-                    conn.execute(text("ALTER TABLE milestone ADD description NVARCHAR(255) NULL"))
+                # SQL Server columns check
+                for col_name, col_type in [
+                    ("description", "NVARCHAR(255) NULL"),
+                    ("title", "NVARCHAR(255) NULL"),
+                    ("percentage", "DECIMAL(5, 2) NULL"),
+                    ("status", "NVARCHAR(50) NULL"),
+                    ("source", "NVARCHAR(50) NULL")
+                ]:
+                    res = conn.execute(text(
+                        f"SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('milestone') AND name = '{col_name}'"
+                    ))
+                    if not res.fetchone():
+                        logger.info(f"Adding {col_name} column to milestone table (SQL Server)...")
+                        conn.execute(text(f"ALTER TABLE milestone ADD {col_name} {col_type}"))
             conn.commit()
     except Exception as e:
         logger.error(f"Failed to auto-upgrade database schema for milestone: {e}")
+
+    # Ensure new columns exist in master_document and progress_history tables (for incremental upgrades)
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            is_sqlite = settings.DATABASE_URL.startswith("sqlite") or engine.url.drivername.startswith("sqlite")
+            
+            # 1. Update master_document table
+            if is_sqlite:
+                res = conn.execute(text("PRAGMA table_info(master_document)"))
+                doc_cols = [r[1] for r in res.fetchall()]
+                if "file_path" not in doc_cols:
+                    conn.execute(text("ALTER TABLE master_document ADD COLUMN file_path TEXT"))
+                if "document_type" not in doc_cols:
+                    conn.execute(text("ALTER TABLE master_document ADD COLUMN document_type TEXT"))
+                if "project_id" not in doc_cols:
+                    conn.execute(text("ALTER TABLE master_document ADD COLUMN project_id TEXT"))
+            else:
+                cols_to_add = [
+                    ("file_path", "NVARCHAR(500) NULL"),
+                    ("document_type", "NVARCHAR(100) NULL"),
+                    ("project_id", "NVARCHAR(100) NULL")
+                ]
+                for col_name, col_type in cols_to_add:
+                    res = conn.execute(text(
+                        f"SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('master_document') AND name = '{col_name}'"
+                    ))
+                    if not res.fetchone():
+                        logger.info(f"Adding column {col_name} to master_document table...")
+                        conn.execute(text(f"ALTER TABLE master_document ADD {col_name} {col_type}"))
+
+            # 2. Update progress_history table
+            if is_sqlite:
+                res = conn.execute(text("PRAGMA table_info(progress_history)"))
+                prog_cols = [r[1] for r in res.fetchall()]
+                if "actual_percentage" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN actual_percentage REAL"))
+                if "planned_percentage" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN planned_percentage REAL"))
+                if "work_completed" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN work_completed TEXT"))
+                if "issues" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN issues TEXT"))
+                if "next_steps" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN next_steps TEXT"))
+                if "report_date" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN report_date TEXT"))
+                if "reported_by" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN reported_by TEXT"))
+                if "source_document_id" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN source_document_id INTEGER"))
+                if "source_file_name" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN source_file_name TEXT"))
+                if "updated_by_user_id" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN updated_by_user_id INTEGER"))
+                if "status" not in prog_cols:
+                    conn.execute(text("ALTER TABLE progress_history ADD COLUMN status TEXT"))
+            else:
+                cols_to_add = [
+                    ("actual_percentage", "DECIMAL(5, 2) NULL"),
+                    ("planned_percentage", "DECIMAL(5, 2) NULL"),
+                    ("work_completed", "NVARCHAR(MAX) NULL"),
+                    ("issues", "NVARCHAR(MAX) NULL"),
+                    ("next_steps", "NVARCHAR(MAX) NULL"),
+                    ("report_date", "DATE NULL"),
+                    ("reported_by", "NVARCHAR(255) NULL"),
+                    ("source_document_id", "INT NULL"),
+                    ("source_file_name", "NVARCHAR(255) NULL"),
+                    ("updated_by_user_id", "INT NULL"),
+                    ("status", "NVARCHAR(50) NULL")
+                ]
+                for col_name, col_type in cols_to_add:
+                    res = conn.execute(text(
+                        f"SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('progress_history') AND name = '{col_name}'"
+                    ))
+                    if not res.fetchone():
+                        logger.info(f"Adding column {col_name} to progress_history table...")
+                        conn.execute(text(f"ALTER TABLE progress_history ADD {col_name} {col_type}"))
+            conn.commit()
+    except Exception as e:
+        logger.error(f"Failed to auto-upgrade database schema for detailed progress columns: {e}")
 
     # Seed database triggers
     setup_database_triggers(engine)
@@ -648,6 +866,27 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Format validation errors list into a nice readable string
+    error_messages = []
+    for error in exc.errors():
+        # Get the field path, skipping "body" prefix for clean display
+        loc_path = [str(x) for x in error.get("loc", [])]
+        if loc_path and loc_path[0] == "body":
+            loc_path = loc_path[1:]
+        field_path = " -> ".join(loc_path)
+        message = error.get("msg", "invalid value")
+        error_messages.append(f"'{field_path}': {message}")
+    
+    friendly_msg = "Validation Error: " + "; ".join(error_messages)
+    logger.warning(f"Validation error on {request.url.path}: {friendly_msg}")
+    
+    return JSONResponse(
+        status_code=422,
+        content={"detail": friendly_msg}
+    )
+
 # CORS
 origins = settings.CORS_ORIGINS.split(",")
 for port in ["5173", "5174", "3000"]:
@@ -678,6 +917,7 @@ app.include_router(progress_router.router,  prefix="/api/v1")
 app.include_router(reports.router,          prefix="/api/v1")
 app.include_router(audit_router.router,     prefix="/api/v1")
 app.include_router(dashboard.router,        prefix="/api/v1")
+app.include_router(issues.router,           prefix="/api/v1")
 
 
 @app.websocket("/api/v1/ws")

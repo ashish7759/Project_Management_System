@@ -30,6 +30,8 @@ class UserResponse(BaseModel):
 class UserUpdate(BaseModel):
     role: Optional[str] = None
     status: Optional[str] = None  # Pending, Active, Inactive
+    reason: Optional[str] = None
+
 
 
 class UserResetPassword(BaseModel):

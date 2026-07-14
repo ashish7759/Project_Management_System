@@ -9,20 +9,37 @@ import {
   Trash2, 
   Eye, 
   Download,
-  AlertTriangle
+  AlertTriangle,
+  List,
+  LayoutGrid
 } from 'lucide-react';
 import { Table, TableRow, TableCell } from '../components/ui/Table';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
+import ConfidenceBadge from '../components/ui/ConfidenceBadge';
 
-const DocumentList: React.FC = () => {
+interface DocumentListProps {
+  hideHeader?: boolean;
+}
+
+const DocumentList: React.FC<DocumentListProps> = ({ hideHeader = false }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t, language } = useLanguage();
   
   const [documents, setDocuments] = useState<MasterDocument[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // View Mode: 'list' or 'grid' (Persisted in localStorage)
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    return (localStorage.getItem('documents_view_mode') as 'list' | 'grid') || 'list';
+  });
+
+  const handleViewModeChange = (mode: 'list' | 'grid') => {
+    setViewMode(mode);
+    localStorage.setItem('documents_view_mode', mode);
+  };
 
   // Search & Filter state
   const [search, setSearch] = useState('');
@@ -129,16 +146,46 @@ const DocumentList: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-primary/10">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl font-outfit">{t('docs.title')}</h1>
-          <p className="text-xs text-text-muted">
-            {language === 'hi' 
-              ? 'OCR पाठ निष्कर्षण पाइपलाइनों को ट्रैक करें और परियोजना चालान मेटाडेटा सत्यापित करें।' 
-              : 'Track OCR text extraction pipelines and verify project invoice metadata.'}
-          </p>
+      {!hideHeader && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-primary/10 gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl font-outfit">{t('docs.title')}</h1>
+            <p className="text-xs text-text-muted">
+              {language === 'hi' 
+                ? 'OCR पाठ निष्कर्षण पाइपलाइनों को ट्रैक करें और परियोजना चालान मेटाडेटा सत्यापित करें।' 
+                : 'Track OCR text extraction pipelines and verify project invoice metadata.'}
+            </p>
+          </div>
+
+          {/* View Mode Controls */}
+          <div className="flex items-center space-x-2 self-start sm:self-center">
+            <div className="bg-primary-bg-2 p-1 rounded-lg border border-primary/10 flex items-center space-x-1">
+              <button
+                onClick={() => handleViewModeChange('list')}
+                className={`p-1.5 rounded-md transition-all duration-200 cursor-pointer ${
+                  viewMode === 'list' 
+                    ? 'bg-primary text-white shadow-sm' 
+                    : 'text-primary-light hover:bg-white/50'
+                }`}
+                title={language === 'hi' ? 'सूची दृश्य' : 'List View'}
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleViewModeChange('grid')}
+                className={`p-1.5 rounded-md transition-all duration-200 cursor-pointer ${
+                  viewMode === 'grid' 
+                    ? 'bg-primary text-white shadow-sm' 
+                    : 'text-primary-light hover:bg-white/50'
+                }`}
+                title={language === 'hi' ? 'ग्रिड दृश्य' : 'Grid View'}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {alert && (
         <div 
@@ -154,13 +201,7 @@ const DocumentList: React.FC = () => {
       )}
 
       {/* Filters Toolbar */}
-      <div 
-        className="flex flex-wrap items-center gap-4 rounded-lg border p-4 shadow-sm"
-        style={{
-          backgroundColor: '#f7faf8',
-          borderColor: 'rgba(26, 92, 56, 0.12)'
-        }}
-      >
+      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border-default bg-surface-2 p-4 shadow-sm">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-primary-light">
@@ -170,7 +211,7 @@ const DocumentList: React.FC = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="block w-full rounded-lg border border-primary/20 bg-white pl-9 pr-3 py-1.5 text-xs text-text-body placeholder-text-hint focus:outline-none focus:border-primary transition duration-150"
+            className="block w-full rounded-lg border border-primary/20 bg-surface pl-9 pr-3 py-1.5 text-xs text-text-body placeholder-text-hint focus:outline-none focus:border-primary transition duration-150"
             placeholder={t('docs.search_placeholder')}
           />
         </div>
@@ -179,7 +220,7 @@ const DocumentList: React.FC = () => {
         <select
           value={docType}
           onChange={(e) => setDocType(e.target.value)}
-          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
+          className="rounded-lg border border-primary/20 bg-surface px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
         >
           <option value="">{t('docs.all_formats')}</option>
           <option value="PDF">PDF</option>
@@ -193,7 +234,7 @@ const DocumentList: React.FC = () => {
         <select
           value={ocrStatus}
           onChange={(e) => setOcrStatus(e.target.value)}
-          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
+          className="rounded-lg border border-primary/20 bg-surface px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
         >
           <option value="">{t('docs.all_ocr')}</option>
           <option value="Processing">{t('docs.processing')}</option>
@@ -205,13 +246,45 @@ const DocumentList: React.FC = () => {
         <select
           value={verificationStatus}
           onChange={(e) => setVerificationStatus(e.target.value)}
-          className="rounded-lg border border-primary/20 bg-white px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
+          className="rounded-lg border border-primary/20 bg-surface px-3 py-1.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
         >
           <option value="">{t('docs.all_verify')}</option>
           <option value="Pending">{t('docs.pending')}</option>
           <option value="Approved">{t('docs.verified')}</option>
           <option value="Rejected">{t('docs.rejected')}</option>
         </select>
+
+        {/* View Mode Controls in filters toolbar when header is hidden */}
+        {hideHeader && (
+          <div className="flex items-center space-x-2 sm:ml-auto">
+            <div className="bg-primary-bg-2 p-1 rounded-lg border border-primary/10 flex items-center space-x-1">
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('list')}
+                className={`p-1.5 rounded-md transition-all duration-200 cursor-pointer ${
+                  viewMode === 'list' 
+                    ? 'bg-primary text-white shadow-sm' 
+                    : 'text-primary-light hover:bg-white/50'
+                }`}
+                title={language === 'hi' ? 'सूची दृश्य' : 'List View'}
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('grid')}
+                className={`p-1.5 rounded-md transition-all duration-200 cursor-pointer ${
+                  viewMode === 'grid' 
+                    ? 'bg-primary text-white shadow-sm' 
+                    : 'text-primary-light hover:bg-white/50'
+                }`}
+                title={language === 'hi' ? 'ग्रिड दृश्य' : 'Grid View'}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* List Table */}
@@ -220,12 +293,12 @@ const DocumentList: React.FC = () => {
           <Spinner size={32} label={t('common.loading')} />
         </div>
       ) : documents.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-white rounded-xl border border-primary/10">
+        <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-surface rounded-xl border border-primary/10">
           <AlertTriangle className="h-8 w-8 stroke-1 text-primary-light" />
           <span className="mt-2 text-xs font-medium">{t('common.nodata')}</span>
         </div>
-      ) : (
-        <Table headers={[t('docs.doc_id'), t('docs.file_details'), t('docs.upload_info'), t('docs.ocr_status'), t('docs.verification'), t('common.actions')]}>
+      ) : viewMode === 'list' ? (
+        <Table headers={[t('docs.doc_id'), t('docs.file_details'), t('docs.upload_info'), t('docs.ocr_status'), t('docs.confidence'), t('docs.verification'), t('common.actions')]}>
           {documents.map((doc, idx) => (
             <TableRow key={doc.document_id} index={idx}>
               <TableCell className="font-mono font-semibold text-primary-light">
@@ -243,6 +316,9 @@ const DocumentList: React.FC = () => {
                 <Badge variant={getOcrBadgeVariant(doc.ocr_status)}>
                   {getOcrBadgeText(doc.ocr_status)}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <ConfidenceBadge score={doc.overall_confidence} />
               </TableCell>
               <TableCell>
                 <Badge variant={getVerifyBadgeVariant(doc.verification_status)}>
@@ -286,6 +362,102 @@ const DocumentList: React.FC = () => {
             </TableRow>
           ))}
         </Table>
+      ) : (
+        /* Grid (Card) View */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {documents.map((doc) => (
+            <div
+              key={doc.document_id}
+              className="bg-surface border border-primary/10 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+            >
+              {/* Card Header */}
+              <div className="p-4 border-b border-primary/5 bg-primary-bg-2/30 flex items-center justify-between">
+                <span className="font-mono text-xs font-bold bg-primary-bg-2 text-primary px-2.5 py-1 rounded border border-primary/10">
+                  #{doc.document_id}
+                </span>
+                <Badge variant={getVerifyBadgeVariant(doc.verification_status)}>
+                  {getVerifyBadgeText(doc.verification_status)}
+                </Badge>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-5 flex-1 space-y-4">
+                <div className="space-y-1.5">
+                  <h3 className="text-sm font-bold text-text-body leading-snug group-hover:text-primary transition-colors duration-200 line-clamp-2" title={doc.file_name}>
+                    {doc.file_name}
+                  </h3>
+                  <div className="text-[11px] text-text-muted">
+                    {t('docs.doc_type')}: <span className="font-medium text-text-body">{doc.file_type}</span>
+                  </div>
+                </div>
+
+                {/* Upload & Date Info */}
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-text-muted bg-primary-bg/25 p-2.5 rounded-xl border border-primary/5 select-none">
+                  <div>
+                    <span className="block text-[10px] text-text-hint font-bold uppercase tracking-wider">{t('docs.upload_date')}</span>
+                    <span className="font-medium text-text-body">{new Date(doc.upload_date).toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-text-hint font-bold uppercase tracking-wider">{t('docs.uploaded_by')}</span>
+                    <span className="font-medium text-text-body">ID: {doc.uploaded_by || 'N/A'}</span>
+                  </div>
+                </div>
+
+                {/* OCR Status and Confidence */}
+                <div className="flex items-center justify-between pt-2 border-t border-primary/5">
+                  <div>
+                    <span className="block text-[10px] text-text-hint font-bold uppercase tracking-wider mb-1">{t('docs.ocr_status')}</span>
+                    <Badge variant={getOcrBadgeVariant(doc.ocr_status)}>
+                      {getOcrBadgeText(doc.ocr_status)}
+                    </Badge>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-[10px] text-text-hint font-bold uppercase tracking-wider mb-1">{t('docs.confidence')}</span>
+                    <ConfidenceBadge score={doc.overall_confidence} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Footer Actions */}
+              <div className="px-5 py-3 bg-primary-bg-2/30 border-t border-primary/5 flex items-center justify-end space-x-2">
+                {/* Verify / View Details */}
+                <Button
+                  variant="secondary"
+                  className="!py-1.5 !px-3 text-xs flex items-center space-x-1"
+                  onClick={() => navigate(`/documents/${doc.document_id}/verify`)}
+                  title={t('docs.verify_title')}
+                  disabled={doc.ocr_status === 'Processing'}
+                >
+                  <Eye className="h-4 w-4" />
+                  <span>{t('common.view')}</span>
+                </Button>
+
+                {/* Download */}
+                <Button
+                  variant="secondary"
+                  className="!py-1.5 !px-3 text-xs flex items-center space-x-1"
+                  onClick={() => handleDownload(doc)}
+                  title={t('common.download')}
+                >
+                  <Download className="h-4 w-4" />
+                  <span>{t('common.download')}</span>
+                </Button>
+
+                {/* Delete (Restricted) */}
+                {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                  <Button
+                    variant="icon"
+                    onClick={() => handleDelete(doc.document_id)}
+                    className="text-danger hover:bg-danger-bg hover:text-danger border border-transparent hover:border-danger/10 !p-1.5 rounded-lg"
+                    title={t('common.delete')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

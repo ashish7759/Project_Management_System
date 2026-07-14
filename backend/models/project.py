@@ -7,6 +7,7 @@ from database import Base
 
 class Project(Base):
     __tablename__ = "project"
+    __table_args__ = {"implicit_returning": False}
 
     project_id = Column(NVARCHAR(100), primary_key=True)  # Alphanumeric Project ID from OCR or manual entries
     project_name = Column(NVARCHAR(255), nullable=False)
@@ -24,4 +25,9 @@ class Project(Base):
     updated_at = Column(DateTime, onupdate=func.now(), nullable=True)
 
     department = relationship("Department")
-    document = relationship("MasterDocument")
+    document = relationship("MasterDocument", foreign_keys=[document_id])
+    contractor = relationship("Contractor", back_populates="project", uselist=False)
+
+    @property
+    def work_order_number(self):
+        return self.contractor.work_order_number if self.contractor else None

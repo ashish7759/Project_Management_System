@@ -5,6 +5,7 @@ from database import Base
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
+    __table_args__ = {"implicit_returning": False}
 
     log_id       = Column(Integer, primary_key=True, autoincrement=True)
     user_id      = Column(Integer, ForeignKey("user_account.user_id",

@@ -27,6 +27,8 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
 import Spinner from '../components/ui/Spinner';
+import FieldConfidence from '../components/ui/FieldConfidence';
+import ConfidenceSummary from '../components/ui/ConfidenceSummary';
 
 const DocumentVerify: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -58,8 +60,18 @@ const DocumentVerify: React.FC = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/users/minimal');
+      setUsersList(res.data);
+    } catch (e) {
+      console.warn("Failed to load users list");
+    }
+  };
+
   useEffect(() => {
     fetchDepartments();
+    fetchUsers();
   }, []);
 
   useEffect(() => {
@@ -78,7 +90,8 @@ const DocumentVerify: React.FC = () => {
 
   // Custom dynamic fields & milestones state
   const [customFields, setCustomFields] = useState<Array<{ key: string, label: string, value: string }>>([]);
-  const [milestones, setMilestones] = useState<Array<{ target_date: string, planned_progress: number, description: string }>>([]);
+  const [milestones, setMilestones] = useState<Array<{ target_date: string, planned_progress: number, description: string, tasks?: any[] }>>([]);
+  const [usersList, setUsersList] = useState<Array<{ user_id: number, full_name: string }>>([]);
 
   // For adding a new custom field
   const [newFieldLabel, setNewFieldLabel] = useState('');
@@ -227,7 +240,102 @@ const DocumentVerify: React.FC = () => {
   };
 
   const handleAddMilestone = () => {
-    setMilestones([...milestones, { target_date: '', planned_progress: 0, description: '' }]);
+    setMilestones([...milestones, { target_date: '', planned_progress: 0, description: '', tasks: [] }]);
+  };
+
+  const handleAddTask = (milestoneIndex: number) => {
+    const updated = [...milestones];
+    if (!updated[milestoneIndex].tasks) {
+      updated[milestoneIndex].tasks = [];
+    }
+    updated[milestoneIndex].tasks.push({
+      title: '',
+      description: '',
+      status: 'Pending',
+      assigned_to: null,
+      due_date: '',
+      subtasks: []
+    });
+    setMilestones(updated);
+  };
+
+  const handleRemoveTask = (milestoneIndex: number, taskPath: number[]) => {
+    const updated = [...milestones];
+    let list = updated[milestoneIndex].tasks || [];
+    
+    const removeRecursive = (currentList: any[], path: number[]): any[] => {
+      const [currIdx, ...rest] = path;
+      if (rest.length === 0) {
+        return currentList.filter((_, idx) => idx !== currIdx);
+      }
+      const updatedItem = { ...currentList[currIdx] };
+      updatedItem.subtasks = removeRecursive(updatedItem.subtasks || [], rest);
+      const copy = [...currentList];
+      copy[currIdx] = updatedItem;
+      return copy;
+    };
+    
+    updated[milestoneIndex].tasks = removeRecursive(list, taskPath);
+    setMilestones(updated);
+  };
+
+  const handleTaskChange = (milestoneIndex: number, taskPath: number[], key: string, val: any) => {
+    const updated = [...milestones];
+    let list = updated[milestoneIndex].tasks || [];
+    
+    const updateRecursive = (currentList: any[], path: number[]): any[] => {
+      const [currIdx, ...rest] = path;
+      if (rest.length === 0) {
+        const copy = [...currentList];
+        copy[currIdx] = {
+          ...copy[currIdx],
+          [key]: key === 'assigned_to' ? (parseInt(val) || null) : val
+        };
+        return copy;
+      }
+      const updatedItem = { ...currentList[currIdx] };
+      updatedItem.subtasks = updateRecursive(updatedItem.subtasks || [], rest);
+      const copy = [...currentList];
+      copy[currIdx] = updatedItem;
+      return copy;
+    };
+    
+    updated[milestoneIndex].tasks = updateRecursive(list, taskPath);
+    setMilestones(updated);
+  };
+
+  const handleAddSubtask = (milestoneIndex: number, parentTaskPath: number[]) => {
+    const updated = [...milestones];
+    let list = updated[milestoneIndex].tasks || [];
+    
+    const addSubtaskRecursive = (currentList: any[], path: number[]): any[] => {
+      const [currIdx, ...rest] = path;
+      if (rest.length === 0) {
+        const copy = [...currentList];
+        const updatedItem = { ...copy[currIdx] };
+        if (!updatedItem.subtasks) {
+          updatedItem.subtasks = [];
+        }
+        updatedItem.subtasks.push({
+          title: '',
+          description: '',
+          status: 'Pending',
+          assigned_to: null,
+          due_date: '',
+          subtasks: []
+        });
+        copy[currIdx] = updatedItem;
+        return copy;
+      }
+      const updatedItem = { ...currentList[currIdx] };
+      updatedItem.subtasks = addSubtaskRecursive(updatedItem.subtasks || [], rest);
+      const copy = [...currentList];
+      copy[currIdx] = updatedItem;
+      return copy;
+    };
+    
+    updated[milestoneIndex].tasks = addSubtaskRecursive(list, parentTaskPath);
+    setMilestones(updated);
   };
 
   const milestonesSum = milestones.reduce((sum, m) => sum + (m.planned_progress || 0), 0);
@@ -250,7 +358,7 @@ const DocumentVerify: React.FC = () => {
 
   if (!document) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-white rounded-xl border border-primary/10">
+      <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-surface rounded-xl border border-primary/10">
         <AlertCircle className="h-8 w-8 stroke-1 text-danger" />
         <span className="mt-2 text-sm font-semibold">{t('docs.verify.not_found')}</span>
       </div>
@@ -262,6 +370,116 @@ const DocumentVerify: React.FC = () => {
   const isViewer = user?.role === 'Viewer';
   const isFormDisabled = isApproved || isViewer;
 
+  const renderTaskEditor = (milestoneIndex: number, tasksList: any[], path: number[]): React.ReactNode => {
+    return tasksList.map((task, idx) => {
+      const currentPath = [...path, idx];
+      
+      return (
+        <div key={idx} className="space-y-3 bg-surface p-4 rounded-xl border border-primary/10 shadow-sm relative group/task mt-3 text-left transition-all duration-200 hover:shadow-md hover:border-primary/20">
+          
+          {/* Action buttons (Delete & Add Subtask) - Positioned Absolutely at top-right */}
+          {!isFormDisabled && (
+            <div className="absolute top-3 right-3 flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={() => handleAddSubtask(milestoneIndex, currentPath)}
+                className="p-1.5 text-text-hint hover:text-primary rounded-lg bg-surface border border-primary/15 hover:border-primary/30 transition shadow-sm cursor-pointer"
+                title={language === 'hi' ? 'उप-कार्य जोड़ें' : 'Add Subtask'}
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemoveTask(milestoneIndex, currentPath)}
+                className="p-1.5 text-text-hint hover:text-danger rounded-lg bg-surface border border-primary/15 hover:border-danger/30 transition shadow-sm cursor-pointer"
+                title={language === 'hi' ? 'कार्य हटाएं' : 'Remove Task'}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Task Inputs Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 pr-20">
+            
+            {/* Title */}
+            <div>
+              <label className="text-[10px] font-bold text-primary uppercase select-none mb-1 block">
+                {language === 'hi' ? 'कार्य शीर्षक' : 'Task Title'}
+              </label>
+              <input
+                type="text"
+                value={task.title}
+                placeholder="e.g. Excavation site setup"
+                disabled={isFormDisabled}
+                onChange={(e) => handleTaskChange(milestoneIndex, currentPath, 'title', e.target.value)}
+                className="w-full bg-surface border border-primary/25 rounded-lg py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-150"
+                required
+              />
+            </div>
+
+            {/* Assignee */}
+            <div>
+              <label className="text-[10px] font-bold text-primary uppercase select-none mb-1 block">
+                {language === 'hi' ? 'सौंपें' : 'Assignee'}
+              </label>
+              <select
+                value={task.assigned_to || ''}
+                disabled={isFormDisabled}
+                onChange={(e) => handleTaskChange(milestoneIndex, currentPath, 'assigned_to', e.target.value)}
+                className="w-full bg-surface border border-primary/25 rounded-lg py-1.5 px-2 text-[12px] text-text-body focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-150 cursor-pointer"
+              >
+                <option value="">{language === 'hi' ? 'अनिर्दिष्ट' : 'Unassigned'}</option>
+                {usersList.map((u) => (
+                  <option key={u.user_id} value={u.user_id}>
+                    {u.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="text-[10px] font-bold text-primary uppercase select-none mb-1 block">
+                {language === 'hi' ? 'विवरण' : 'Description'}
+              </label>
+              <input
+                type="text"
+                value={task.description || ''}
+                placeholder="e.g. Clear area & build fence"
+                disabled={isFormDisabled}
+                onChange={(e) => handleTaskChange(milestoneIndex, currentPath, 'description', e.target.value)}
+                className="w-full bg-surface border border-primary/25 rounded-lg py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-150"
+              />
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className="text-[10px] font-bold text-primary uppercase select-none mb-1 block">
+                {language === 'hi' ? 'नियत तिथि' : 'Due Date'}
+              </label>
+              <input
+                type="date"
+                value={task.due_date || ''}
+                disabled={isFormDisabled}
+                onChange={(e) => handleTaskChange(milestoneIndex, currentPath, 'due_date', e.target.value)}
+                className="w-full bg-surface border border-primary/25 rounded-lg py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-150 cursor-pointer"
+              />
+            </div>
+
+          </div>
+
+          {/* Child Subtasks rendering */}
+          {task.subtasks && task.subtasks.length > 0 && (
+            <div className="pl-4 border-l-2 border-dashed border-primary/15 mt-2 space-y-2">
+              {renderTaskEditor(milestoneIndex, task.subtasks, currentPath)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
+
   const fileViewerUrl = getDocumentViewerUrl(document.original_file_path);
   const fileExt = document.file_type.toLowerCase();
   const isRenderable = ['pdf', 'jpg', 'jpeg', 'png'].includes(fileExt);
@@ -269,7 +487,7 @@ const DocumentVerify: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top action bar */}
-      <div className="flex items-center justify-between border-b border-primary/10 bg-white p-4 rounded-xl shadow-sm">
+      <div className="flex items-center justify-between border-b border-primary/10 bg-surface p-4 rounded-xl shadow-sm">
         <Button
           variant="secondary"
           onClick={() => navigate('/documents')}
@@ -306,7 +524,7 @@ const DocumentVerify: React.FC = () => {
       {/* Side-by-side view */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left Side: Original document */}
-        <div className="flex flex-col rounded-xl border border-primary/15 bg-white p-4 shadow-sm h-[750px]">
+        <div className="flex flex-col rounded-xl border border-primary/15 bg-surface p-4 shadow-sm h-[750px]">
           <h3 className="text-sm font-semibold text-primary border-b border-primary/10 pb-2.5 mb-3 flex items-center uppercase tracking-wide">
             <FileText className="mr-1.5 h-4.5 w-4.5" />
             Original File: {document.file_name}
@@ -350,10 +568,15 @@ const DocumentVerify: React.FC = () => {
         </div>
 
         {/* Right Side: Extracted data form */}
-        <div className="flex flex-col rounded-xl border border-primary/15 bg-white p-5 shadow-sm h-[750px] overflow-y-auto">
+        <div className="flex flex-col rounded-xl border border-primary/15 bg-surface p-5 shadow-sm h-[750px] overflow-y-auto">
           <h3 className="text-sm font-semibold text-primary border-b border-primary/10 pb-2.5 mb-4 uppercase tracking-wide">
             {t('docs.verify.parsed_fields')}
           </h3>
+
+          <ConfidenceSummary
+            confidenceScores={document?.confidence_scores}
+            overallConfidence={document?.overall_confidence}
+          />
 
           <form className="space-y-4 flex-grow" onSubmit={handleSubmit((d) => handleAction(d, 'SaveDraft'))}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -362,7 +585,13 @@ const DocumentVerify: React.FC = () => {
               <div className="sm:col-span-2">
                 <Input
                   type="text"
-                  label={t('projects.project_name')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('projects.project_name')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.project_name} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.project_name}
                   disabled={isFormDisabled}
                   {...register('project_name')}
                   required
@@ -373,7 +602,13 @@ const DocumentVerify: React.FC = () => {
               <div>
                 <Input
                   type="text"
-                  label={t('projects.project_id')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('projects.project_id')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.project_id} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.project_id}
                   disabled={isFormDisabled}
                   {...register('project_id')}
                   required
@@ -384,7 +619,13 @@ const DocumentVerify: React.FC = () => {
               <div>
                 <Input
                   type="text"
-                  label={t('docs.work_order')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('docs.work_order')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.work_order_number} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.work_order_number}
                   disabled={isFormDisabled}
                   {...register('work_order_number')}
                 />
@@ -394,7 +635,13 @@ const DocumentVerify: React.FC = () => {
               <div>
                 <Input
                   type="text"
-                  label={t('projects.contractor')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('projects.contractor')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.contractor_name} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.contractor_name}
                   disabled={isFormDisabled}
                   {...register('contractor_name')}
                 />
@@ -404,7 +651,13 @@ const DocumentVerify: React.FC = () => {
               <div>
                 <Input
                   type="text"
-                  label={t('docs.verify.contractor_id')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('docs.verify.contractor_id')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.contractor_id} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.contractor_id}
                   disabled={isFormDisabled}
                   {...register('contractor_id')}
                 />
@@ -414,7 +667,13 @@ const DocumentVerify: React.FC = () => {
               <div>
                 <Input
                   type="text"
-                  label={t('docs.verify.location_site')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('docs.verify.location_site')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.location} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.location}
                   disabled={isFormDisabled}
                   {...register('location')}
                 />
@@ -424,7 +683,13 @@ const DocumentVerify: React.FC = () => {
               <div>
                 <Input
                   type="text"
-                  label={t('projects.district')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('projects.district')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.district} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.district}
                   disabled={isFormDisabled}
                   {...register('district')}
                 />
@@ -435,7 +700,13 @@ const DocumentVerify: React.FC = () => {
                 <Input
                   type="number"
                   step="any"
-                  label={t('docs.budget')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('docs.budget')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.budget_amount} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.budget_amount}
                   disabled={isFormDisabled}
                   {...register('budget_amount')}
                 />
@@ -456,7 +727,13 @@ const DocumentVerify: React.FC = () => {
 
               {/* Department */}
               <Select
-                label={t('common.department')}
+                label={
+                  <div className="flex items-center gap-1.5">
+                    <span>{t('common.department')}</span>
+                    <FieldConfidence score={document?.confidence_scores?.department} />
+                  </div>
+                }
+                confidenceScore={document?.confidence_scores?.department}
                 disabled={isFormDisabled}
                 {...register('department')}
               >
@@ -471,7 +748,13 @@ const DocumentVerify: React.FC = () => {
               <div>
                 <Input
                   type="date"
-                  label={t('projects.start_date')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('projects.start_date')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.start_date} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.start_date}
                   disabled={isFormDisabled}
                   {...register('start_date')}
                 />
@@ -481,7 +764,13 @@ const DocumentVerify: React.FC = () => {
               <div>
                 <Input
                   type="date"
-                  label={t('projects.end_date')}
+                  label={
+                    <div className="flex items-center gap-1.5">
+                      <span>{t('projects.end_date')}</span>
+                      <FieldConfidence score={document?.confidence_scores?.end_date} />
+                    </div>
+                  }
+                  confidenceScore={document?.confidence_scores?.end_date}
                   disabled={isFormDisabled}
                   {...register('end_date')}
                 />
@@ -489,7 +778,13 @@ const DocumentVerify: React.FC = () => {
 
               {/* Document Type */}
               <Select
-                label={t('docs.doc_type')}
+                label={
+                  <div className="flex items-center gap-1.5">
+                    <span>{t('docs.doc_type')}</span>
+                    <FieldConfidence score={document?.confidence_scores?.document_type} />
+                  </div>
+                }
+                confidenceScore={document?.confidence_scores?.document_type}
                 disabled={isFormDisabled}
                 {...register('document_type')}
               >
@@ -503,7 +798,13 @@ const DocumentVerify: React.FC = () => {
 
               {/* Status */}
               <Select
-                label={t('docs.verify.project_status')}
+                label={
+                  <div className="flex items-center gap-1.5">
+                    <span>{t('docs.verify.project_status')}</span>
+                    <FieldConfidence score={document?.confidence_scores?.status} />
+                  </div>
+                }
+                confidenceScore={document?.confidence_scores?.status}
                 disabled={isFormDisabled}
                 {...register('status')}
               >
@@ -515,12 +816,34 @@ const DocumentVerify: React.FC = () => {
 
               {/* Notes */}
               <div className="sm:col-span-2">
-                <label className="text-[13px] font-medium text-primary mb-1 select-none">{t('docs.verify.notes')}</label>
+                <label className="text-[13px] font-medium text-primary mb-1 select-none flex items-center gap-1.5">
+                  <span>{t('docs.verify.notes')}</span>
+                  <FieldConfidence score={document?.confidence_scores?.description} />
+                </label>
                 <textarea
                   disabled={isFormDisabled}
                   {...register('notes')}
                   rows={2}
-                  className="w-full bg-white border border-primary/25 rounded-lg py-[0.6rem] px-[0.9rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
+                  style={{
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--input-text)',
+                    borderRadius: '8px',
+                    borderColor: document?.confidence_scores?.description !== undefined && document?.confidence_scores?.description !== null
+                      ? document.confidence_scores.description < 60
+                        ? '#b91c1c'
+                        : document.confidence_scores.description < 85
+                          ? '#c9a84c'
+                          : 'var(--input-border)'
+                      : 'var(--input-border)',
+                    borderWidth: document?.confidence_scores?.description !== undefined && document?.confidence_scores?.description !== null
+                      ? document.confidence_scores.description < 60
+                        ? '2px'
+                        : document.confidence_scores.description < 85
+                          ? '1.5px'
+                          : '1px'
+                      : '1px',
+                  }}
+                  className="w-full bg-surface rounded-lg py-[0.6rem] px-[0.9rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
                   placeholder="Verification observations..."
                 />
               </div>
@@ -558,7 +881,7 @@ const DocumentVerify: React.FC = () => {
                           value={newFieldLabel}
                           onChange={(e) => setNewFieldLabel(e.target.value)}
                           placeholder="e.g. Substation Name"
-                          className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                          className="w-full bg-surface border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
                         />
                       </div>
                       <div>
@@ -568,7 +891,7 @@ const DocumentVerify: React.FC = () => {
                           value={newFieldValue}
                           onChange={(e) => setNewFieldValue(e.target.value)}
                           placeholder="e.g. Dhurwa Substation"
-                          className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                          className="w-full bg-surface border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
                         />
                       </div>
                     </div>
@@ -604,20 +927,20 @@ const DocumentVerify: React.FC = () => {
                       <div key={field.key} className="flex items-end space-x-2 relative group">
                         <div className="flex-1">
                           <label className="text-[12px] font-medium text-primary mb-1 select-none block truncate" title={field.label}>
-                            {field.label}
+                             {field.label}
                           </label>
                           <input
                             type="text"
                             value={field.value}
                             disabled={isFormDisabled}
                             onChange={(e) => handleCustomFieldChange(index, e.target.value)}
-                            className="w-full bg-white border border-primary/25 rounded-lg py-[0.55rem] px-[0.8rem] text-[13px] text-text-body focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
+                            className="w-full bg-surface border border-primary/25 rounded-lg py-[0.55rem] px-[0.8rem] text-[13px] text-text-body focus:outline-none focus:border-2 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-150"
                           />
                         </div>
                         {!isFormDisabled && (
                           <button
                             type="button"
-                            className="p-2.5 text-text-hint hover:text-danger rounded-lg bg-white border border-primary/15 hover:border-danger/30 transition shadow-sm mb-0.5"
+                            className="p-2.5 text-text-hint hover:text-danger rounded-lg bg-surface border border-primary/15 hover:border-danger/30 transition shadow-sm mb-0.5"
                             onClick={() => handleRemoveCustomField(index)}
                             title="Remove Field"
                           >
@@ -666,62 +989,96 @@ const DocumentVerify: React.FC = () => {
                 ) : (
                   <div className="space-y-3 bg-primary-bg/30 p-3 rounded-lg border border-primary/5">
                     {milestones.map((m, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row gap-3 bg-white p-3 rounded-lg border border-primary/10 shadow-sm relative group">
+                      <div key={index} className="flex flex-col gap-3.5 bg-surface p-4 rounded-xl border border-primary/15 shadow-sm relative group text-left">
                         
-                        {/* Milestone Description */}
-                        <div className="flex-1">
-                          <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block">
-                            {language === 'hi' ? 'विवरण' : 'Description'}
-                          </label>
-                          <input
-                            type="text"
-                            value={m.description}
-                            placeholder="e.g. Foundations & Cable laying"
-                            disabled={isFormDisabled}
-                            onChange={(e) => handleMilestoneChange(index, 'description', e.target.value)}
-                            className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
-                          />
-                        </div>
-
-                        {/* Milestone Date */}
-                        <div className="w-full sm:w-40">
-                          <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block">
-                            {language === 'hi' ? 'लक्ष्य तिथि' : 'Target Date'}
-                          </label>
-                          <input
-                            type="date"
-                            value={m.target_date}
-                            disabled={isFormDisabled}
-                            onChange={(e) => handleMilestoneChange(index, 'target_date', e.target.value)}
-                            className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
-                          />
-                        </div>
-
-                        {/* Progress % */}
-                        <div className="w-full sm:w-28 flex items-end space-x-2">
+                        {/* Milestone Input Row */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          {/* Milestone Description */}
                           <div className="flex-1">
-                            <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block truncate">
-                              {language === 'hi' ? 'प्रगति %' : 'Progress %'}
+                            <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block">
+                              {language === 'hi' ? 'विवरण' : 'Description'}
                             </label>
                             <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={m.planned_progress}
+                              type="text"
+                              value={m.description}
+                              placeholder="e.g. Foundations & Cable laying"
                               disabled={isFormDisabled}
-                              onChange={(e) => handleMilestoneChange(index, 'planned_progress', e.target.value)}
-                              className="w-full bg-white border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                              onChange={(e) => handleMilestoneChange(index, 'description', e.target.value)}
+                              className="w-full bg-surface border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
                             />
                           </div>
-                          {!isFormDisabled && (
-                            <button
-                              type="button"
-                              className="p-2 text-text-hint hover:text-danger rounded bg-primary-bg border border-primary/10 hover:border-danger/30 transition shadow-sm mb-0.5"
-                              onClick={() => handleRemoveMilestone(index)}
-                              title="Remove Milestone"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+
+                          {/* Milestone Date */}
+                          <div className="w-full sm:w-40">
+                            <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block">
+                              {language === 'hi' ? 'लक्ष्य तिथि' : 'Target Date'}
+                            </label>
+                            <input
+                              type="date"
+                              value={m.target_date}
+                              disabled={isFormDisabled}
+                              onChange={(e) => handleMilestoneChange(index, 'target_date', e.target.value)}
+                              className="w-full bg-surface border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                            />
+                          </div>
+
+                          {/* Progress % */}
+                          <div className="w-full sm:w-28 flex items-end space-x-2">
+                            <div className="flex-1">
+                              <label className="text-[11px] font-bold text-primary uppercase select-none mb-1 block truncate">
+                                {language === 'hi' ? 'प्रगति %' : 'Progress %'}
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={m.planned_progress}
+                                disabled={isFormDisabled}
+                                onChange={(e) => handleMilestoneChange(index, 'planned_progress', e.target.value)}
+                                className="w-full bg-surface border border-primary/25 rounded py-1.5 px-3 text-[12px] text-text-body focus:outline-none focus:border-primary"
+                              />
+                            </div>
+                            {!isFormDisabled && (
+                              <button
+                                type="button"
+                                className="p-2 text-text-hint hover:text-danger rounded bg-primary-bg border border-primary/10 hover:border-danger/30 transition shadow-sm mb-0.5 cursor-pointer"
+                                onClick={() => handleRemoveMilestone(index)}
+                                title="Remove Milestone"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Milestone Tasks Section */}
+                        <div className="border-t border-primary/5 pt-3.5 mt-1 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-primary uppercase tracking-wide flex items-center gap-1.5 select-none">
+                              <CheckSquare className="h-3.5 w-3.5" />
+                              {language === 'hi' ? 'मील का पत्थर कार्य' : 'Milestone Tasks'}
+                            </span>
+                            {!isFormDisabled && (
+                              <button
+                                type="button"
+                                onClick={() => handleAddTask(index)}
+                                className="text-[10px] font-bold text-primary hover:text-primary-dark flex items-center gap-1 cursor-pointer bg-primary-bg px-2.5 py-1 rounded-md border border-primary/15 transition shadow-sm"
+                              >
+                                <Plus className="h-3 w-3" />
+                                <span>{language === 'hi' ? 'कार्य जोड़ें' : 'Add Task'}</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Render Tasks List Recursively */}
+                          {(!m.tasks || m.tasks.length === 0) ? (
+                            <p className="text-[10px] text-text-hint italic pl-1 text-left select-none">
+                              {language === 'hi' ? 'इस मील के पत्थर के तहत कोई कार्य निर्धारित नहीं है।' : 'No tasks scheduled under this milestone.'}
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {renderTaskEditor(index, m.tasks, [])}
+                            </div>
                           )}
                         </div>
 
@@ -823,7 +1180,7 @@ const DocumentVerify: React.FC = () => {
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               rows={3}
-              className="w-full bg-white border border-primary/25 rounded-lg py-[0.6rem] px-[0.9rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-2 focus:border-danger focus:ring-4 focus:ring-danger/10 transition-all duration-150"
+              className="w-full bg-surface border border-primary/25 rounded-lg py-[0.6rem] px-[0.9rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-2 focus:border-danger focus:ring-4 focus:ring-danger/10 transition-all duration-150"
               placeholder={t('docs.verify.reject_placeholder')}
               required
             />

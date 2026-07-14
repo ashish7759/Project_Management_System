@@ -13,6 +13,7 @@ engine = create_engine(
     echo=False,
     pool_pre_ping=True,
     pool_recycle=3600,
+    implicit_returning=False,
 )
 
 SessionLocal = sessionmaker(

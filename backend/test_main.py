@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from database import Base
-from models import User, Department, MasterDocument, Project, Contractor, Location, Milestone, ProgressHistory, AuditLog
+from models import User, Department, MasterDocument, Project, Contractor, Location, Milestone, ProgressHistory, AuditLog, Task
 
 
 client = TestClient(app)
@@ -22,6 +22,7 @@ def test_imports_succeeded():
     assert Milestone.__tablename__ == "milestone"
     assert ProgressHistory.__tablename__ == "progress_history"
     assert AuditLog.__tablename__ == "audit_log"
+    assert Task.__tablename__ == "task"
 
 def test_api_root():
     """

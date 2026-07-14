@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'accent' | 'danger' | 'icon';
@@ -11,25 +11,49 @@ export const Button: React.FC<ButtonProps> = ({
   children, 
   ...props 
 }) => {
-  let baseStyles = 'inline-flex items-center justify-center gap-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 focus:outline-none select-none active:scale-[0.98]';
-  let variantStyles = '';
+  const [isHovered, setIsHovered] = useState(false);
+  
+  let baseStyles = 'inline-flex items-center justify-center gap-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 focus:outline-none select-none active:scale-[0.98] cursor-pointer';
+  let inlineStyle: React.CSSProperties = {};
 
   switch (variant) {
     case 'primary':
-      variantStyles = 'bg-primary text-white hover:bg-primary-dark border-none border-b-2 border-accent';
+      // Primary button (stays always green — do NOT change)
+      inlineStyle = {
+        background: isHovered ? '#145030' : '#1a5c38',
+        color: '#ffffff',
+        border: 'none',
+        borderBottom: '2px solid var(--color-accent)',
+      };
       break;
     case 'secondary':
-      variantStyles = 'bg-white text-primary border border-primary hover:bg-[#f0f7f3]';
+      inlineStyle = {
+        background: isHovered ? 'var(--bg-surface-hover)' : 'var(--bg-surface)',
+        color: 'var(--text-primary)',
+        border: '1px solid var(--border-default)',
+      };
       break;
     case 'accent':
-      variantStyles = 'bg-accent text-white hover:bg-accent-dark border-none';
+      inlineStyle = {
+        background: isHovered ? 'var(--color-accent-d)' : 'var(--color-accent)',
+        color: '#ffffff',
+        border: 'none',
+      };
       break;
     case 'danger':
-      variantStyles = 'bg-white text-danger border border-danger hover:bg-danger-bg';
+      inlineStyle = {
+        background: isHovered ? 'var(--badge-danger-bg)' : 'var(--bg-surface)',
+        color: 'var(--badge-danger-txt)',
+        border: '1px solid var(--badge-danger-txt)',
+      };
       break;
     case 'icon':
-      variantStyles = 'bg-transparent text-primary hover:bg-primary-bg-2 rounded-md p-1.5 active:scale-95';
-      baseStyles = 'inline-flex items-center justify-center transition-all duration-200 focus:outline-none';
+      inlineStyle = {
+        background: isHovered ? 'var(--bg-surface-hover)' : 'transparent',
+        color: 'var(--text-primary)',
+        border: 'none',
+      };
+      baseStyles = 'inline-flex items-center justify-center transition-all duration-200 focus:outline-none rounded-md p-1.5 active:scale-95 cursor-pointer';
       break;
   }
 
@@ -44,7 +68,10 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button 
-      className={`${baseStyles} ${variantStyles} ${paddingStyles} ${className}`}
+      className={`${baseStyles} ${paddingStyles} ${className}`}
+      style={inlineStyle}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       {...props}
     >
       {children}

@@ -102,17 +102,20 @@ def get_dashboard_stats(
             "uploads": count
         })
 
-    # Activity Feed: Last 10 actions from audit log (user, action, timestamp)
-    recent_audits = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10).all()
-    activity_feed = [
+    # Pending Verifications: Last 5 documents with verification_status == "Pending"
+    recent_pending = db.query(MasterDocument).filter(
+        MasterDocument.verification_status == "Pending"
+    ).order_by(MasterDocument.upload_date.desc()).limit(5).all()
+
+    pending_verifications = [
         {
-            "log_id": a.log_id,
-            "username": a.username or "SYSTEM",
-            "action_type": a.action_type,
-            "module": a.module,
-            "timestamp": a.timestamp
+            "document_id": d.document_id,
+            "file_name": d.file_name,
+            "file_type": d.file_type,
+            "overall_confidence": d.overall_confidence,
+            "upload_date": d.upload_date.isoformat() if d.upload_date else None
         }
-        for a in recent_audits
+        for d in recent_pending
     ]
 
     return {
@@ -128,5 +131,5 @@ def get_dashboard_stats(
             "pie_chart": pie_chart_data,
             "line_chart": line_chart_data
         },
-        "activity_feed": activity_feed
+        "pending_verifications": pending_verifications
     }

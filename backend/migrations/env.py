@@ -25,7 +25,7 @@ if config.config_file_name is not None:
 
 # Import all models for autogenerate
 from database import Base
-from models import user, document, project, contractor, location, department, progress, audit
+from models import user, document, project, contractor, location, department, progress, audit, email_log
 
 target_metadata = Base.metadata
 

@@ -6,6 +6,7 @@ class DatabaseChangeLog(Base):
     Log of table modifications triggered by the database engine (inserts, updates, deletes).
     """
     __tablename__ = "database_change_log"
+    __table_args__ = {"implicit_returning": False}
 
     change_id = Column(Integer, primary_key=True, autoincrement=True)
     table_name = Column(NVARCHAR(100), nullable=False)

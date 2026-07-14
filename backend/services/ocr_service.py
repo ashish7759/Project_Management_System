@@ -190,3 +190,10 @@ def process_document_ocr(file_path: str) -> Tuple[str, str]:
         status = "Failed"
 
     return extracted_text, status
+
+
+def extract_text_from_file(file_path: str) -> str:
+    extracted_text, status = process_document_ocr(file_path)
+    if status == "Failed":
+        raise Exception(extracted_text)
+    return extracted_text

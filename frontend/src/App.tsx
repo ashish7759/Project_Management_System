@@ -10,8 +10,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
-import DocumentUpload from './pages/DocumentUpload';
-import DocumentList from './pages/DocumentList';
+import DocumentManagement from './pages/DocumentManagement';
 import DocumentVerify from './pages/DocumentVerify';
 import ProjectList from './pages/ProjectList';
 import ProjectDetail from './pages/ProjectDetail';
@@ -19,6 +18,7 @@ import ProgressTracker from './pages/ProgressTracker';
 import ReportGeneration from './pages/ReportGeneration';
 import AuditTrail from './pages/AuditTrail';
 import Unauthorized from './pages/Unauthorized';
+import IssueTracker from './pages/IssueTracker';
 
 const App: React.FC = () => {
   return (
@@ -64,7 +64,7 @@ const App: React.FC = () => {
               path="/documents/upload" 
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Operator']}>
-                  <DocumentUpload />
+                  <Navigate to="/documents?tab=upload" replace />
                 </ProtectedRoute>
               } 
             />
@@ -84,6 +84,14 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/issues" 
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Operator', 'Viewer']}>
+                  <IssueTracker />
+                </ProtectedRoute>
+              } 
+            />
 
             {/* Admin/Manager/Viewer */}
             <Route 
@@ -96,7 +104,7 @@ const App: React.FC = () => {
             />
 
             {/* All Roles */}
-            <Route path="/documents" element={<DocumentList />} />
+            <Route path="/documents" element={<DocumentManagement />} />
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
           </Route>

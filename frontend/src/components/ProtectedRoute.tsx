@@ -17,7 +17,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: '#f7faf8' }}>
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--bg-page)' }}>
         <Spinner size={40} label={t('auth.verifying_session')} />
       </div>
     );

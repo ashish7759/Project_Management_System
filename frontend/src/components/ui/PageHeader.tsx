@@ -20,7 +20,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-primary/8 pb-4 mb-6 ${className}`}>
+    <div 
+      className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-4 mb-6 ${className}`}
+      style={{ borderBottomColor: 'var(--border-subtle)' }}
+    >
       <div className="space-y-1">
         {/* Breadcrumbs */}
         {breadcrumbs.length > 0 && (
@@ -37,11 +40,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                       {bc.label}
                     </Link>
                   ) : (
-                    <span className={isLast ? 'text-primary font-medium' : ''}>
+                    <span 
+                      className={isLast ? 'font-medium' : ''}
+                      style={{ color: isLast ? 'var(--text-primary)' : 'inherit' }}
+                    >
                       {bc.label}
                     </span>
                   )}
-                  {!isLast && <span style={{ color: '#c9a84c' }}>/</span>}
+                  {!isLast && <span style={{ color: 'var(--color-accent)' }}>/</span>}
                 </React.Fragment>
               );
             })}
@@ -49,7 +55,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         )}
         
         {/* Page Title */}
-        <h1 className="text-[18px] font-medium text-primary tracking-tight">
+        <h1 className="text-[18px] font-medium tracking-tight font-outfit" style={{ color: 'var(--text-heading)' }}>
           {title}
         </h1>
       </div>

@@ -12,7 +12,7 @@ import {
   Calendar,
   LayoutGrid,
   List,
-  MapPin,
+  FileText,
   FolderOpen,
   TrendingUp,
   CheckCircle2,
@@ -196,7 +196,7 @@ const ProjectList: React.FC = () => {
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total */}
-        <div className="bg-white border border-primary/10 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
+        <div className="bg-surface border border-primary/10 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
               {language === 'hi' ? 'कुल परियोजनाएं' : 'Total Projects'}
@@ -211,7 +211,7 @@ const ProjectList: React.FC = () => {
         </div>
 
         {/* Card 2: Active */}
-        <div className="bg-white border border-primary/10 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
+        <div className="bg-surface border border-primary/10 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
               {language === 'hi' ? 'सक्रिय (प्रगति में)' : 'Active (In Progress)'}
@@ -226,7 +226,7 @@ const ProjectList: React.FC = () => {
         </div>
 
         {/* Card 3: Completed */}
-        <div className="bg-white border border-primary/10 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
+        <div className="bg-surface border border-primary/10 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
               {language === 'hi' ? 'सफलतापूर्वक पूर्ण' : 'Completed'}
@@ -241,7 +241,7 @@ const ProjectList: React.FC = () => {
         </div>
 
         {/* Card 4: Delayed */}
-        <div className="bg-white border border-primary/10 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
+        <div className="bg-surface border border-primary/10 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
               {language === 'hi' ? 'विलंबित' : 'Delayed'}
@@ -257,7 +257,7 @@ const ProjectList: React.FC = () => {
       </div>
 
       {/* Filters Toolbar */}
-      <div className="bg-white border border-primary/10 rounded-xl p-4 shadow-sm space-y-4">
+      <div className="bg-surface border border-primary/10 rounded-xl p-4 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
           <div className="relative flex-1 min-w-[240px]">
@@ -268,7 +268,7 @@ const ProjectList: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="block w-full rounded-lg border border-primary/20 bg-white pl-9 pr-3 py-[0.55rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition duration-150"
+              className="block w-full rounded-lg border border-primary/20 bg-surface pl-9 pr-3 py-[0.55rem] text-[13px] text-text-body placeholder-text-hint focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition duration-150"
               placeholder={t('projects.search_placeholder')}
             />
           </div>
@@ -278,7 +278,7 @@ const ProjectList: React.FC = () => {
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="rounded-lg border border-primary/20 bg-white px-3 py-[0.55rem] text-[13px] text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer w-48 appearance-none pr-8 font-medium"
+              className="rounded-lg border border-primary/20 bg-surface px-3 py-[0.55rem] text-[13px] text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer w-48 appearance-none pr-8 font-medium"
               style={{ backgroundImage: 'url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3E%3Cpath stroke=\'%23666666\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3E%3C/svg%3E")', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.25em 1.25em', backgroundRepeat: 'no-repeat' }}
             >
               <option value="">{t('projects.all_depts')}</option>
@@ -293,7 +293,7 @@ const ProjectList: React.FC = () => {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="rounded-lg border border-primary/20 bg-white px-3 py-[0.55rem] text-[13px] text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer w-44 appearance-none pr-8 font-medium"
+              className="rounded-lg border border-primary/20 bg-surface px-3 py-[0.55rem] text-[13px] text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer w-44 appearance-none pr-8 font-medium"
               style={{ backgroundImage: 'url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 20 20\'%3E%3Cpath stroke=\'%23666666\' stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'m6 8 4 4 4-4\'/%3E%3C/svg%3E")', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.25em 1.25em', backgroundRepeat: 'no-repeat' }}
             >
               <option value="">{t('projects.all_statuses')}</option>
@@ -312,7 +312,7 @@ const ProjectList: React.FC = () => {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="bg-white rounded border border-primary/10 px-2 py-0.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
+                className="bg-surface rounded border border-primary/10 px-2 py-0.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
               />
             </div>
 
@@ -322,7 +322,7 @@ const ProjectList: React.FC = () => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="bg-white rounded border border-primary/10 px-2 py-0.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
+                className="bg-surface rounded border border-primary/10 px-2 py-0.5 text-xs text-text-body focus:outline-none focus:border-primary transition duration-150 cursor-pointer"
               />
             </div>
           </div>
@@ -359,7 +359,7 @@ const ProjectList: React.FC = () => {
           <Spinner size={32} label={t('projects.loading')} />
         </div>
       ) : projects.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-white rounded-xl border border-primary/10 shadow-sm">
+        <div className="flex h-64 flex-col items-center justify-center text-text-hint bg-surface rounded-xl border border-primary/10 shadow-sm">
           <Folder className="h-10 w-10 stroke-1 text-primary-light animate-bounce" />
           <span className="mt-2 text-xs font-semibold text-text-muted">
             {hasActiveFilters 
@@ -370,14 +370,14 @@ const ProjectList: React.FC = () => {
         </div>
       ) : viewMode === 'list' ? (
         /* List View */
-        <div className="overflow-hidden rounded-xl border border-primary/15 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-primary/15 bg-surface shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-primary/10 text-left text-sm">
               <thead className="bg-primary text-[11px] font-bold uppercase tracking-wider text-white select-none">
                 <tr>
                   <th className="px-5 py-4 border-r border-white/10">{t('projects.project_id')}</th>
                   <th className="px-5 py-4 border-r border-white/10">{t('projects.name_dept')}</th>
-                  <th className="px-5 py-4 border-r border-white/10">{t('projects.location')}</th>
+                  <th className="px-5 py-4 border-r border-white/10">{t('projects.agreement')}</th>
                   <th className="px-5 py-4 border-r border-white/10">{t('projects.budget')}</th>
                   <th className="px-5 py-4 border-r border-white/10">{t('projects.completion')}</th>
                   <th className="px-5 py-4 border-r border-white/10">{t('common.status')}</th>
@@ -400,12 +400,12 @@ const ProjectList: React.FC = () => {
                       key={p.project_id}
                       onClick={() => navigate(`/projects/${p.project_id}`)}
                       className={`group hover:bg-primary-bg2 cursor-pointer transition-all duration-200 border-l-4 border-l-transparent hover:border-l-primary ${
-                        idx % 2 === 0 ? 'bg-white' : 'bg-primary-bg/30'
+                        idx % 2 === 0 ? 'bg-surface' : 'bg-primary-bg/30'
                       }`}
                     >
                       {/* Project ID */}
                       <td className="px-5 py-4.5 font-mono font-bold text-primary-light">
-                        <span className="bg-primary-bg2/80 px-2.5 py-1 rounded border border-primary/10 group-hover:bg-white transition-colors duration-200">
+                        <span className="bg-primary-bg2/80 px-2.5 py-1 rounded border border-primary/10 group-hover:bg-surface transition-colors duration-200">
                           {p.project_id}
                         </span>
                       </td>
@@ -420,13 +420,12 @@ const ProjectList: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Location */}
+                      {/* Agreement */}
                       <td className="px-5 py-4.5">
                         <div className="flex items-center space-x-1.5 text-text-body font-medium">
-                          <MapPin className="h-3.5 w-3.5 text-primary-light" />
-                          <span>{p.location || 'N/A'}</span>
+                          <FileText className="h-3.5 w-3.5 text-primary-light" />
+                          <span className="font-mono text-xs">{p.work_order_number || 'N/A'}</span>
                         </div>
-                        <div className="text-[11px] text-text-muted ml-5 mt-0.5">{p.district || 'Jharkhand'}</div>
                       </td>
 
                       {/* Budget */}
@@ -515,7 +514,7 @@ const ProjectList: React.FC = () => {
               <div
                 key={p.project_id}
                 onClick={() => navigate(`/projects/${p.project_id}`)}
-                className="bg-white border border-primary/10 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between group"
+                className="bg-surface border border-primary/10 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between group"
               >
                 {/* Card Top Branding Header */}
                 <div className="p-5 pb-3 border-b border-primary/5 flex items-center justify-between">
@@ -543,16 +542,15 @@ const ProjectList: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Location Info */}
+                  {/* Agreement Info */}
                   <div className="flex items-start space-x-2 text-xs text-text-muted bg-primary-bg/40 p-2.5 rounded-xl border border-primary/5 select-none">
-                    <MapPin className="h-4 w-4 text-primary-light shrink-0 mt-0.5" />
+                    <FileText className="h-4 w-4 text-primary-light shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-text-body">{p.location || 'N/A'}</div>
-                      <div className="text-[10px] text-text-hint">{p.district || 'Jharkhand'}</div>
+                      <div className="font-semibold text-text-body">{p.work_order_number || 'N/A'}</div>
+                      <div className="text-[10px] text-text-hint">{t('projects.agreement')}</div>
                     </div>
                   </div>
 
-                  {/* Budget Allocation Panel */}
                   <div className="flex items-center justify-between bg-primary-bg-2/40 px-3.5 py-2.5 rounded-xl border border-primary/10 select-none">
                     <span className="text-[10.5px] font-bold text-primary-light uppercase tracking-wider block">
                       {language === 'hi' ? 'बजट राशि' : 'Sanctioned Budget'}

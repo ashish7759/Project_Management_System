@@ -15,6 +15,16 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173"
     OPENAI_API_KEY: str = ""
 
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = "no-reply@jbvnl.co.in"
+    MAIL_FROM_NAME: str = "Jharkhand Bijli Office"
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
+    MAIL_ENABLED: bool = True
+
     class Config:
         env_file = ".env"
         extra = "ignore"

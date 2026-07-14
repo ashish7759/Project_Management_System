@@ -15,17 +15,20 @@ export const Card: React.FC<CardProps> = ({
   className = '',
   children,
 }) => {
-  let cardStyles = 'bg-white border border-primary/12 rounded-[10px] p-5 shadow-sm';
-  if (accentLeft) {
-    cardStyles += ' border-l-[3px] border-l-accent';
-  }
-
   return (
-    <div className={`${cardStyles} ${className}`}>
+    <div 
+      className={`rounded-[10px] p-5 ${className}`}
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-default)',
+        borderLeft: accentLeft ? '3px solid var(--color-accent)' : '1px solid var(--border-default)',
+        boxShadow: 'var(--shadow-card)'
+      }}
+    >
       {(title || subtitle) && (
-        <div className="border-b border-primary/8 pb-3 mb-4">
-          {title && <h3 className="text-[15px] font-medium text-primary">{title}</h3>}
-          {subtitle && <p className="text-[12px] text-text-muted mt-0.5">{subtitle}</p>}
+        <div className="pb-3 mb-4 border-b border-primary/8" style={{ borderBottomColor: 'var(--border-subtle)' }}>
+          {title && <h3 className="text-[15px] font-medium" style={{ color: 'var(--text-heading)' }}>{title}</h3>}
+          {subtitle && <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
         </div>
       )}
       {children}

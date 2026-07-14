@@ -31,7 +31,7 @@ export const Toast: React.FC<ToastProps> = ({
       icon = <X size={16} className="text-white shrink-0" />;
       break;
     case 'info':
-      bgClass = 'bg-[#1d6a8a]';
+      bgClass = 'bg-info';
       icon = <Info size={16} className="text-white shrink-0" />;
       break;
   }
